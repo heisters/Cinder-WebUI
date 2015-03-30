@@ -1,3 +1,6 @@
 [submodule "Cinder"]
 	path = Cinder
-	url = git@github.com:cinder/Cinder.git
+	url = git@github.com:heisters/Cinder.git
+[submodule "blocks/WebSocketPP"]
+	path = blocks/WebSocketPP
+	url = git@github.com:heisters/Cinder-WebSocketPP.git
