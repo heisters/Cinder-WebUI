@@ -157,7 +157,15 @@ struct from_string_visitor : boost::static_visitor<>
 
 void ParamUI::Param::setFromString( const string &string )
 {
-    boost::apply_visitor( from_string_visitor( string ), mPtr );
+    try
+    {
+        boost::apply_visitor( from_string_visitor( string ), mPtr );
+    }
+
+    catch ( boost::bad_lexical_cast err )
+    {
+        CI_LOG_W( "Could not set param with value of " << string );
+    }
 }
 
 #pragma mark -- ParamUI
