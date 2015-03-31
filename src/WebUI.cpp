@@ -1,11 +1,25 @@
 #include "WebUI.h"
 #include "cinder/Log.h"
-#include "boost/algorithm/string.hpp"
 #include "boost/lexical_cast.hpp"
 
 using namespace ci;
 using namespace std;
 using namespace webui;
+
+#pragma mark -- Event
+
+Event::Event() :
+mType( Type::UNKNOWN )
+{
+
+}
+
+Event::Event( const Type &type, const ci::JsonTree &data ) :
+mType( type ),
+mData( data )
+{
+
+}
 
 #pragma mark -- Server
 Server::Server() :
@@ -48,60 +62,65 @@ void Server::onRead( string msg )
 {
     CI_LOG_V( "read: " << msg );
 
-    dispatch( parse( msg ) );
+    JsonTree parsed;
+    try
+    {
+        parsed = JsonTree( msg );
+    }
 
+    catch( JsonTree::Exception err )
+    {
+        CI_LOG_W( "could not parse message: " << msg );
+        return;
+    }
+
+
+
+    for ( const auto &n : parsed )
+    {
+        string command = n.getKey();
+        if ( command == "set" )
+        {
+            dispatch( Event( Event::Type::SET, parsed.getChild( "set" ) ) );
+        }
+
+        else if ( command == "get" )
+        {
+            dispatch( Event( Event::Type::GET, parsed.getChild( "get" ) ) );
+        }
+    }
 }
 
-Event Server::parse( const string &msg )
+Server::EventSignal & Server::getEventSignal( const Event::Type &type )
 {
-    vector< string > tokens;
-    boost::split( tokens, msg, boost::is_any_of( " " ) );
-    if ( tokens.size() != 3 )
-    {
-        CI_LOG_W( "invalid message received: " << msg );
-        return Event();
-    }
-
-    string str_type = tokens.at( 0 );
-    Event::Type type = Event::Type::UNKNOWN;
-    if ( str_type == "set" ) type = Event::Type::SET;
-    else
-    {
-        CI_LOG_W( "unrecognized message type: " << msg );
-        return Event();
-    }
-
-    return Event( type, tokens.at( 1 ), tokens.at( 2 ) );
+    return mEventSignals[ type ];
 }
+
+void Server::get( const string &name )
+{
+    stringstream ss;
+    JsonTree json( "get", name );
+    ss << json;
+    write( ss.str() );
+}
+
+template< typename T >
+void Server::set( const string &name, const T &value )
+{
+    stringstream ss;
+    JsonTree json = JsonTree::makeObject();
+    json.addChild( JsonTree::makeObject( "set" ) );
+    json.getChild( "set" ).addChild( JsonTree( name, value ) );
+    ss << json;
+    write( ss.str() );
+}
+
 
 void Server::dispatch( const Event &event )
 {
-    switch ( event.getType() ) {
-        case Event::Type::SET:
-            getSetSignal()( event );
-            break;
-
-        default:
-            break;
-    }
+    getEventSignal( event.getType() )( event );
 }
 
-
-#pragma mark -- Event
-
-Event::Event() :
-mType( Type::UNKNOWN )
-{
-
-}
-
-Event::Event( const Type &type, const std::string &name, const std::string &value ) :
-mType( type ),
-mName( name ),
-mValue( value )
-{
-
-}
 
 #pragma mark -- BaseUI
 
@@ -120,12 +139,6 @@ void BaseUI::listen( uint16_t port )
     CI_LOG_I( "WebUI listening on port " << port );
 }
 
-void BaseUI::write( const string &msg )
-{
-    mServer.write( msg );
-}
-
-
 
 #pragma mark -- ParamUI::Param
 
@@ -143,7 +156,8 @@ ParamUI::ParamOptions & ParamUI::Param::getOptions()
 
 struct from_string_visitor : boost::static_visitor<>
 {
-    from_string_visitor( const string &str ) : str( str ) {}
+    from_string_visitor( const string &s ) : str( s ) {};
+    string str;
 
     template< typename T >
     void operator()( T const &value ) const
@@ -152,7 +166,18 @@ struct from_string_visitor : boost::static_visitor<>
         *value = boost::lexical_cast< decltype( v ) >( str );
     }
 
+};
+
+struct to_string_visitor : boost::static_visitor<>
+{
+    to_string_visitor() : str( "" ) {};
     string str;
+
+    template< typename T >
+    void operator()( T const &value )
+    {
+        str = boost::lexical_cast< string >( *value );
+    }
 };
 
 void ParamUI::Param::setFromString( const string &string )
@@ -164,15 +189,34 @@ void ParamUI::Param::setFromString( const string &string )
 
     catch ( boost::bad_lexical_cast err )
     {
-        CI_LOG_W( "Could not set param with value of " << string );
+        CI_LOG_W( "Could not set param " << mName << " with value of " << string );
     }
+}
+
+string ParamUI::Param::getString()
+{
+    string str = "";
+    try
+    {
+        to_string_visitor visitor;
+        boost::apply_visitor( visitor, mPtr );
+        str = visitor.str;
+    }
+    catch ( boost::bad_lexical_cast err )
+    {
+        CI_LOG_W( "Could not get string from param " << mName );
+    }
+
+    return str;
 }
 
 #pragma mark -- ParamUI
 
 ParamUI::ParamUI()
 {
-    mServer.getSetSignal().connect( ::std::bind( &ParamUI::onSet, this, ::std::placeholders::_1 ) );
+    mServer.getEventSignal( Event::Type::SET ).connect( ::std::bind( &ParamUI::onSet, this, ::std::placeholders::_1 ) );
+
+    mServer.getEventSignal( Event::Type::GET ).connect( ::std::bind( &ParamUI::onGet, this, ::std::placeholders::_1 ) );
 }
 
 ParamUI::ParamOptions & ParamUI::bind( const string &name, float *floatParam )
@@ -188,12 +232,30 @@ ParamUI::ParamContainer::iterator ParamUI::findParam( const string &name )
 
 void ParamUI::onSet( Event event )
 {
-    auto it = findParam( event.getName() );
+    for ( const auto &n : event.getData() )
+    {
+        string name = n.getKey();
+        auto it = findParam( name );
+        if ( it == mParams.end() )
+        {
+            CI_LOG_W( "unknown param: " << name );
+            return;
+        }
+
+        it->second.setFromString( n.getValue() );
+    }
+}
+
+void ParamUI::onGet( Event event )
+{
+    string name = event.getData().getValue();
+    auto it = findParam( name );
     if ( it == mParams.end() )
     {
-        CI_LOG_W( "unknown param: " << event.getName() );
+        CI_LOG_W( "unknown param: " << name );
         return;
     }
 
-    it->second.setFromString( event.getValue() );
+    string value = it->second.getString();
+    mServer.set( it->first, value );
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WebSocketServer.h"
+#include "cinder/Json.h"
 #include "boost/variant.hpp"
 #include "boost/signals2.hpp"
 #include <map>
@@ -12,16 +13,16 @@ namespace webui {
 class Event
 {
 public:
-    enum class Type { UNKNOWN, SET };
+    enum class Type { UNKNOWN, GET, SET };
     Event();
-    Event( const Type &type, const std::string &name, const std::string &value );
+    Event( const Type &type, const ci::JsonTree &data );
 
     Type                    getType() const { return mType; }
-    std::string             getName() const { return mName; }
-    std::string             getValue() const { return mValue; }
+    const ci::JsonTree &    getData() const { return mData; }
+    ci::JsonTree            getData() { return mData; }
 private:
     Type                    mType;
-    std::string             mName, mValue;
+    ci::JsonTree            mData;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -30,10 +31,15 @@ class Server : public WebSocketServer
 {
 public:
     typedef boost::signals2::signal< void ( Event ) > EventSignal;
+    typedef std::map< Event::Type, EventSignal > EventSignalContainer;
 
     Server();
 
-    EventSignal &               getSetSignal() { return mSetSignal; }
+    EventSignal &               getEventSignal( const Event::Type &type );
+
+    void                        get( const std::string &name );
+    template< typename T >
+    void                        set( const std::string &name, const T &value );
 
 private:
     void						onConnect();
@@ -43,9 +49,7 @@ private:
     void						onPing( std::string msg );
     void						onRead( std::string msg );
 
-
-    EventSignal                 mSetSignal;
-    Event                       parse( const std::string &msg );
+    EventSignalContainer        mEventSignals;
     void                        dispatch( const Event &event );
 };
 
@@ -61,7 +65,6 @@ public:
 
 protected:
     Server                      mServer;
-    void                        write( const std::string &msg );
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -84,6 +87,7 @@ public:
         ParamOptions &              getOptions();
 
         void                        setFromString( const std::string &string );
+        std::string                 getString();
         
         typedef boost::variant< float * > ptr_t;
     private:
@@ -98,6 +102,7 @@ public:
 
 private:
     void                            onSet( Event event );
+    void                            onGet( Event event );
 
     ParamContainer                  mParams;
 
