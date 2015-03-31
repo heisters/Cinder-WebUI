@@ -1,86 +1,65 @@
 #include "cinder/app/App.h"
 #include "cinder/app/RendererGl.h"
 #include "cinder/gl/gl.h"
-#include "WebSocketServer.h"
+#include "cinder/Log.h"
+#include "WebUI.h"
+
+class WebUISampleApp : public ci::app::App {
+public:
+    WebUISampleApp();
+
+	void setup() override;
+    void mouseDown( ci::app::MouseEvent event ) override;
+	void update() override;
+	void draw() override;
+
+private:
+
+    WebParamUI      mUI;
+    float           mWidth;
+};
 
 using namespace ci;
 using namespace ci::app;
 using namespace std;
 
-class WebUISampleApp : public App {
-public:
-	void setup() override;
-	void mouseDown( MouseEvent event ) override;
-	void update() override;
-	void draw() override;
-
-private:
-    WebSocketServer				mServer;
-    void						onConnect();
-    void						onDisconnect();
-    void						onError( std::string err );
-    void						onInterrupt();
-    void						onPing( std::string msg );
-    void						onRead( std::string msg );
-};
+WebUISampleApp::WebUISampleApp() :
+mWidth( 1.f )
+{
+}
 
 void WebUISampleApp::setup()
 {
-    mServer.addConnectCallback( &WebUISampleApp::onConnect, this );
-    mServer.addDisconnectCallback( &WebUISampleApp::onDisconnect, this );
-    mServer.addErrorCallback( &WebUISampleApp::onError, this );
-    mServer.addInterruptCallback( &WebUISampleApp::onInterrupt, this );
-    mServer.addPingCallback( &WebUISampleApp::onPing, this );
-    mServer.addReadCallback( &WebUISampleApp::onRead, this );
+    log::manager()->enableSystemLogging();
+    log::manager()->setSystemLoggingLevel( log::LEVEL_INFO );
+//    log::manager()->enableConsoleLogging();
 
-    mServer.listen( 9002 );
+    mUI.listen( 9002 );
+
+    mUI.addParam( "width", &mWidth );
 }
 
 void WebUISampleApp::mouseDown( MouseEvent event )
 {
-    mServer.write( "foo" );
 }
 
 void WebUISampleApp::update()
 {
-    mServer.poll();
+    mUI.update();
 
 }
 
 void WebUISampleApp::draw()
 {
-	gl::clear( Color( 0, 0, 0 ) ); 
+	gl::clear( Color( 0, 0, 0 ) );
+
+    gl::ScopedColor scp_color( ColorAf( 1.f, 0.0, 0.0, 1.0 ) );
+
+    Rectf r = getWindowBounds();
+    r.scaleCentered( vec2( mWidth, 1.f ) );
+    gl::drawSolidRect( r );
 }
 
-void WebUISampleApp::onConnect()
-{
-    console() << "connect" << endl;
-}
-
-void WebUISampleApp::onDisconnect()
-{
-    console() << "disconnect" << endl;
-}
-
-void WebUISampleApp::onInterrupt()
-{
-    console() << "interrupt" << endl;
-}
-
-void WebUISampleApp::onError( string err )
-{
-    console() << "error: " << err << endl;
-}
-
-void WebUISampleApp::onPing( string msg )
-{
-    console() << "ping: " << msg << endl;
-}
-
-void WebUISampleApp::onRead( string msg )
-{
-    console() << "read: " << msg << endl;
-}
 
 
 

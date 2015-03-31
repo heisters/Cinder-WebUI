@@ -18,6 +18,7 @@
 		3C1C7DE41AC9FED900F41619 /* WebSocketConnection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C1C7D711AC9FED800F41619 /* WebSocketConnection.cpp */; };
 		3C1C7DE51AC9FED900F41619 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 3C1C7D781AC9FED800F41619 /* CMakeLists.txt */; };
 		3C1C7DE61AC9FED900F41619 /* WebSocketServer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C1C7DE11AC9FED900F41619 /* WebSocketServer.cpp */; };
+		3C1C7DF01ACA18A600F41619 /* WebUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C1C7DEF1ACA18A600F41619 /* WebUI.cpp */; };
 		5323E6B20EAFCA74003A9687 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5323E6B10EAFCA74003A9687 /* CoreVideo.framework */; };
 		5323E6B60EAFCA7E003A9687 /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5323E6B50EAFCA7E003A9687 /* QTKit.framework */; };
 		5D822F9D22024DECB746BB88 /* WebUISampleApp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A2D1B6E0D0694F3F85AB82DD /* WebUISampleApp.cpp */; };
@@ -132,6 +133,8 @@
 		3C1C7DE01AC9FED900F41619 /* version.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = version.hpp; sourceTree = "<group>"; };
 		3C1C7DE11AC9FED900F41619 /* WebSocketServer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebSocketServer.cpp; sourceTree = "<group>"; };
 		3C1C7DE21AC9FED900F41619 /* WebSocketServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSocketServer.h; sourceTree = "<group>"; };
+		3C1C7DEE1ACA189900F41619 /* WebUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebUI.h; sourceTree = "<group>"; };
+		3C1C7DEF1ACA18A600F41619 /* WebUI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebUI.cpp; sourceTree = "<group>"; };
 		5323E6B10EAFCA74003A9687 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = /System/Library/Frameworks/CoreVideo.framework; sourceTree = "<absolute>"; };
 		5323E6B50EAFCA7E003A9687 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = /System/Library/Frameworks/QTKit.framework; sourceTree = "<absolute>"; };
 		59B94F9592DF4598BB6FD613 /* WebUISample_Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = "\"\""; path = WebUISample_Prefix.pch; sourceTree = "<group>"; };
@@ -164,6 +167,7 @@
 		01B97315FEAEA392516A2CEA /* Blocks */ = {
 			isa = PBXGroup;
 			children = (
+				3C1C7DE71ACA181100F41619 /* WebUI */,
 				3C1C7D6E1AC9FED800F41619 /* WebSocketPP */,
 			);
 			name = Blocks;
@@ -529,6 +533,33 @@
 			path = stub;
 			sourceTree = "<group>";
 		};
+		3C1C7DE71ACA181100F41619 /* WebUI */ = {
+			isa = PBXGroup;
+			children = (
+				3C1C7DEC1ACA187500F41619 /* include */,
+				3C1C7DED1ACA187500F41619 /* src */,
+			);
+			name = WebUI;
+			sourceTree = "<group>";
+		};
+		3C1C7DEC1ACA187500F41619 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				3C1C7DEE1ACA189900F41619 /* WebUI.h */,
+			);
+			name = include;
+			path = ../../../include;
+			sourceTree = "<group>";
+		};
+		3C1C7DED1ACA187500F41619 /* src */ = {
+			isa = PBXGroup;
+			children = (
+				3C1C7DEF1ACA18A600F41619 /* WebUI.cpp */,
+			);
+			name = src;
+			path = ../../../src;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -595,6 +626,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C1C7DE31AC9FED900F41619 /* WebSocketClient.cpp in Sources */,
+				3C1C7DF01ACA18A600F41619 /* WebUI.cpp in Sources */,
 				5D822F9D22024DECB746BB88 /* WebUISampleApp.cpp in Sources */,
 				3C1C7DE61AC9FED900F41619 /* WebSocketServer.cpp in Sources */,
 				3C1C7DE41AC9FED900F41619 /* WebSocketConnection.cpp in Sources */,
