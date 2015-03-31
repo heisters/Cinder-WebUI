@@ -5,19 +5,37 @@
 #include "boost/signals2.hpp"
 #include <map>
 
-class WebUI
+namespace webui {
+
+////////////////////////////////////////////////////////////////////////////////
+// Event
+class Event
 {
 public:
-    WebUI();
+    enum class Type { UNKNOWN, SET };
+    Event();
+    Event( const Type &type, const std::string &name, const std::string &value );
 
-    void                        update();
-    void                        listen( uint16_t port );
+    Type                    getType() const { return mType; }
+    std::string             getName() const { return mName; }
+    std::string             getValue() const { return mValue; }
+private:
+    Type                    mType;
+    std::string             mName, mValue;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Server
+class Server : public WebSocketServer
+{
+public:
+    typedef boost::signals2::signal< void ( Event ) > EventSignal;
+
+    Server();
+
+    EventSignal &               getSetSignal() { return mSetSignal; }
 
 private:
-    WebSocketServer             mServer;
-
-    void                        write( const std::string &msg );
-
     void						onConnect();
     void						onDisconnect();
     void						onError( std::string err );
@@ -25,42 +43,33 @@ private:
     void						onPing( std::string msg );
     void						onRead( std::string msg );
 
-protected:
-    class Event
-    {
-    public:
-        enum class Type { UNKNOWN, SET };
-        Event();
-        Event( const Type &type, const std::string &name, const std::string &value );
 
-        Type                    getType() const { return mType; }
-        std::string             getName() const { return mName; }
-        std::string             getValue() const { return mValue; }
-
-        operator bool() const { return mIsValid; }
-    private:
-        bool                    mIsValid;
-        Type                    mType;
-        std::string             mName, mValue;
-    };
-
-private:
-    typedef boost::signals2::signal< void ( Event ) > EventSignal;
     EventSignal                 mSetSignal;
-
-protected:
-    EventSignal &               getSetSignal() { return mSetSignal; }
-    
-private:
-
     Event                       parse( const std::string &msg );
     void                        dispatch( const Event &event );
 };
 
-class WebParamUI : public WebUI
+////////////////////////////////////////////////////////////////////////////////
+// BaseUI
+class BaseUI
 {
 public:
-    WebParamUI();
+    BaseUI();
+
+    void                        update();
+    void                        listen( uint16_t port );
+
+protected:
+    Server                      mServer;
+    void                        write( const std::string &msg );
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// ParamUI
+class ParamUI : public BaseUI
+{
+public:
+    ParamUI();
 
     class ParamOptions
     {
@@ -94,3 +103,5 @@ private:
     ParamContainer                  mParams;
 
 };
+
+} // end namespace webui

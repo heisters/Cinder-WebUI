@@ -15,7 +15,7 @@ public:
 
 private:
 
-    WebParamUI      mUI;
+    webui::ParamUI  mUI;
     float           mWidth;
 };
 

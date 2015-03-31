@@ -5,87 +5,54 @@
 
 using namespace ci;
 using namespace std;
+using namespace webui;
 
-#pragma mark -- WebUI::Event
-
-WebUI::Event::Event() :
-mIsValid( false ),
-mType( Type::UNKNOWN )
+#pragma mark -- Server
+Server::Server() :
+WebSocketServer()
 {
-
+    addConnectCallback( &Server::onConnect, this );
+    addDisconnectCallback( &Server::onDisconnect, this );
+    addErrorCallback( &Server::onError, this );
+    addInterruptCallback( &Server::onInterrupt, this );
+    addPingCallback( &Server::onPing, this );
+    addReadCallback( &Server::onRead, this );
 }
 
-WebUI::Event::Event( const Type &type, const std::string &name, const std::string &value ) :
-mIsValid( true ),
-mType( type ),
-mName( name ),
-mValue( value )
+void Server::onConnect()
 {
-
+    CI_LOG_I( "Client connected" );
 }
 
-#pragma mark -- WebUI
-
-WebUI::WebUI()
+void Server::onDisconnect()
 {
-    mServer.addConnectCallback( &WebUI::onConnect, this );
-    mServer.addDisconnectCallback( &WebUI::onDisconnect, this );
-    mServer.addErrorCallback( &WebUI::onError, this );
-    mServer.addInterruptCallback( &WebUI::onInterrupt, this );
-    mServer.addPingCallback( &WebUI::onPing, this );
-    mServer.addReadCallback( &WebUI::onRead, this );
+    CI_LOG_I( "Client disconnected" );
 }
 
-void WebUI::update()
-{
-    mServer.poll();
-}
-
-void WebUI::listen( uint16_t port )
-{
-    mServer.listen( port );
-    CI_LOG_I( "WebUI listening on port " << port );
-}
-
-void WebUI::write( const string &msg )
-{
-    mServer.write( msg );
-}
-
-void WebUI::onConnect()
-{
-    CI_LOG_I( "connect" );
-}
-
-void WebUI::onDisconnect()
-{
-    CI_LOG_I( "disconnect" );
-}
-
-void WebUI::onInterrupt()
+void Server::onInterrupt()
 {
     CI_LOG_I( "interrupt" );
 }
 
-void WebUI::onError( string err )
+void Server::onError( string err )
 {
-    CI_LOG_I( "error: " << err );
+    CI_LOG_W( "WebUI error: " << err );
 }
 
-void WebUI::onPing( string msg )
+void Server::onPing( string msg )
 {
     CI_LOG_V( "ping: " << msg );
 }
 
-void WebUI::onRead( string msg )
+void Server::onRead( string msg )
 {
     CI_LOG_V( "read: " << msg );
 
     dispatch( parse( msg ) );
-    
+
 }
 
-WebUI::Event WebUI::parse( const string &msg )
+Event Server::parse( const string &msg )
 {
     vector< string > tokens;
     boost::split( tokens, msg, boost::is_any_of( " " ) );
@@ -107,7 +74,7 @@ WebUI::Event WebUI::parse( const string &msg )
     return Event( type, tokens.at( 1 ), tokens.at( 2 ) );
 }
 
-void WebUI::dispatch( const WebUI::Event &event )
+void Server::dispatch( const Event &event )
 {
     switch ( event.getType() ) {
         case Event::Type::SET:
@@ -119,16 +86,57 @@ void WebUI::dispatch( const WebUI::Event &event )
     }
 }
 
-#pragma mark -- WebParamUI::Param
 
-WebParamUI::Param::Param( const string &name, float *ptr ) :
+#pragma mark -- Event
+
+Event::Event() :
+mType( Type::UNKNOWN )
+{
+
+}
+
+Event::Event( const Type &type, const std::string &name, const std::string &value ) :
+mType( type ),
+mName( name ),
+mValue( value )
+{
+
+}
+
+#pragma mark -- BaseUI
+
+BaseUI::BaseUI()
+{
+}
+
+void BaseUI::update()
+{
+    mServer.poll();
+}
+
+void BaseUI::listen( uint16_t port )
+{
+    mServer.listen( port );
+    CI_LOG_I( "WebUI listening on port " << port );
+}
+
+void BaseUI::write( const string &msg )
+{
+    mServer.write( msg );
+}
+
+
+
+#pragma mark -- ParamUI::Param
+
+ParamUI::Param::Param( const string &name, float *ptr ) :
 mName( name ),
 mPtr( ptr )
 {
 
 }
 
-WebParamUI::ParamOptions & WebParamUI::Param::getOptions()
+ParamUI::ParamOptions & ParamUI::Param::getOptions()
 {
     return mOptions;
 }
@@ -147,36 +155,36 @@ struct from_string_visitor : boost::static_visitor<>
     string str;
 };
 
-void WebParamUI::Param::setFromString( const string &string )
+void ParamUI::Param::setFromString( const string &string )
 {
     boost::apply_visitor( from_string_visitor( string ), mPtr );
 }
 
-#pragma mark -- WebParamUI
+#pragma mark -- ParamUI
 
-WebParamUI::WebParamUI()
+ParamUI::ParamUI()
 {
     using namespace placeholders;
-    getSetSignal().connect( bind( &WebParamUI::onSet, this, ::_1 ) );
+    mServer.getSetSignal().connect( bind( &ParamUI::onSet, this, ::_1 ) );
 }
 
-WebParamUI::ParamOptions & WebParamUI::addParam( const string &name, float *floatParam )
+ParamUI::ParamOptions & ParamUI::addParam( const string &name, float *floatParam )
 {
     mParams.emplace( name, Param( name, floatParam ) );
     return mParams.at( name ).getOptions();
 }
 
-WebParamUI::Param & WebParamUI::getParam( const string &name )
+ParamUI::Param & ParamUI::getParam( const string &name )
 {
     return mParams.at( name );
 }
 
-WebParamUI::ParamContainer::iterator WebParamUI::findParam( const string &name )
+ParamUI::ParamContainer::iterator ParamUI::findParam( const string &name )
 {
     return mParams.find( name );
 }
 
-void WebParamUI::onSet( WebUI::Event event )
+void ParamUI::onSet( Event event )
 {
     auto it = findParam( event.getName() );
     if ( it == mParams.end() )
