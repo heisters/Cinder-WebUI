@@ -93,8 +93,7 @@ public:
     };
     typedef std::map< std::string, Param > ParamContainer;
 
-    ParamOptions &                  addParam( const std::string &name, float *floatParam );
-    Param &                         getParam( const std::string &name );
+    ParamOptions &                  bind( const std::string &name, float *floatParam );
     ParamContainer::iterator        findParam( const std::string &name );
 
 private:

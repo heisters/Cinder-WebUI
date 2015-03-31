@@ -172,19 +172,13 @@ void ParamUI::Param::setFromString( const string &string )
 
 ParamUI::ParamUI()
 {
-    using namespace placeholders;
-    mServer.getSetSignal().connect( bind( &ParamUI::onSet, this, ::_1 ) );
+    mServer.getSetSignal().connect( ::std::bind( &ParamUI::onSet, this, ::std::placeholders::_1 ) );
 }
 
-ParamUI::ParamOptions & ParamUI::addParam( const string &name, float *floatParam )
+ParamUI::ParamOptions & ParamUI::bind( const string &name, float *floatParam )
 {
     mParams.emplace( name, Param( name, floatParam ) );
     return mParams.at( name ).getOptions();
-}
-
-ParamUI::Param & ParamUI::getParam( const string &name )
-{
-    return mParams.at( name );
 }
 
 ParamUI::ParamContainer::iterator ParamUI::findParam( const string &name )

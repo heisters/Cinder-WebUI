@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="client.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <form id="controls" action="">
+      <label for="width">Width</label>
+      <input id="width" type="range" min="0" max="1" step="0.01" />
+    </form>
+
+
+    <script type="text/javascript">
+      var client = new WebUIClient.ParamClient( document.getElementById( "controls" ) );
+      client.bind( document.getElementById( "width" ) );
+      client.connect( "ws://localhost:9002" );
+    </script>
+  </body>
+</html>

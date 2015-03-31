@@ -36,7 +36,7 @@ void WebUISampleApp::setup()
 
     mUI.listen( 9002 );
 
-    mUI.addParam( "width", &mWidth );
+    mUI.bind( "width", &mWidth );
 }
 
 void WebUISampleApp::mouseDown( MouseEvent event )
