@@ -30,12 +30,12 @@ private:
 class Server : public WebSocketServer
 {
 public:
-    typedef boost::signals2::signal< void ( Event ) > EventSignal;
-    typedef std::map< Event::Type, EventSignal > EventSignalContainer;
+    typedef boost::signals2::signal< void ( Event ) > event_signal;
+    typedef std::map< Event::Type, event_signal > event_signal_container;
 
     Server();
 
-    EventSignal &               getEventSignal( const Event::Type &type );
+    event_signal &              getEventSignal( const Event::Type &type );
 
     void                        get( const std::string &name );
     template< typename T >
@@ -49,7 +49,7 @@ private:
     void						onPing( std::string msg );
     void						onRead( std::string msg );
 
-    EventSignalContainer        mEventSignals;
+    event_signal_container      mEventSignals;
     void                        dispatch( const Event &event );
 };
 
@@ -60,20 +60,27 @@ class BoundParam
 {
 public:
     typedef T value;
+    typedef boost::signals2::signal< void ( T ) > signal;
 
     BoundParam() {};
     BoundParam( const T &v ) : mValue( v ) {};
 
-    operator                    T () const { return mValue; }
-    T operator                  () () const { return mValue; }
-    T & operator                () () { return mValue; }
-    T & operator                = ( const T & v ) { mValue = v; return mValue; }
-    T & operator                += ( const T & v ) { mValue += v; return mValue; }
-    T & operator                -= ( const T & v ) { mValue -= v; return mValue; }
-    T & operator                ++ () { mValue++; return mValue; }
-    T & operator                -- () { mValue--; return mValue; }
+    T                           get() const { return mValue; }
+    T                           set( const T & v, bool notify=true ) { mValue = v; if(notify) notifyChange(); return get(); }
+    operator                    T () const { return get(); }
+    T operator                  () () const { return get(); }
+    T operator                  = ( const T & v ) { return set( v ); }
+    T operator                  += ( const T & v ) { return set( mValue + v ); }
+    T operator                  -= ( const T & v ) { return set( mValue - v ); }
+    T operator                  ++ () { mValue++; notifyChange(); return get(); }
+    T operator                  -- () { mValue--; notifyChange(); return get(); }
+
+    signal &                    getChangeSignal() { return mChangeSignal; }
 private:
+    void                        notifyChange() { getChangeSignal()( get() ); }
+
     T                           mValue;
+    signal                      mChangeSignal;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -92,7 +99,8 @@ public:
     template< typename T >
     void                            bind( const std::string &name, T *param )
     {
-        mParams.emplace( name, param );
+        param->getChangeSignal().connect( std::bind( &WebUI::onParamChange, this, name ) );
+        mParams.insert( make_pair( name, param ) );
     }
 
     bound_params_container::iterator findParam( const std::string &name );
@@ -100,6 +108,9 @@ public:
 private:
     void                            onSet( Event event );
     void                            onGet( Event event );
+    void                            onParamChange( const std::string &name );
+    void                            setClients( const bound_params_container::value_type &pair );
+    void                            setSelf( const bound_params_container::value_type &pair, const std::string &value );
 
     bound_params_container          mParams;
 

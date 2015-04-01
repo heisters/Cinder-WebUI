@@ -88,7 +88,7 @@ void Server::onRead( string msg )
     }
 }
 
-Server::EventSignal & Server::getEventSignal( const Event::Type &type )
+Server::event_signal & Server::getEventSignal( const Event::Type &type )
 {
     return mEventSignals[ type ];
 }
@@ -141,50 +141,29 @@ void WebUI::listen( uint16_t port )
 
 WebUI::bound_params_container::iterator WebUI::findParam( const string &name )
 {
-    return mParams.find( name );
+    auto it = mParams.find( name );
+    if ( it == mParams.end() )
+    {
+        CI_LOG_W( "unknown param: " << name );
+    }
+
+    return it;
 }
 
-
-struct from_string_visitor : boost::static_visitor<>
+struct set_from_string_visitor : boost::static_visitor<>
 {
-    from_string_visitor( const string &s ) : str( s ) {};
+    set_from_string_visitor( const string &s ) : str( s ) {};
     string str;
 
     template< typename bound_param_t >
     void operator()( bound_param_t const &param ) const
     {
         auto v = (*param)();
-        *param = boost::lexical_cast< decltype( v ) >( str );
+        param->set( boost::lexical_cast< decltype( v ) >( str ),
+                   false );
     }
     
 };
-
-void WebUI::onSet( Event event )
-{
-    for ( const auto &n : event.getData() )
-    {
-        string name = n.getKey();
-        auto it = findParam( name );
-        if ( it == mParams.end() )
-        {
-            CI_LOG_W( "unknown param: " << name );
-            return;
-        }
-
-
-        auto &p = it->second;
-        try
-        {
-            boost::apply_visitor( from_string_visitor( n.getValue() ), p );
-        }
-
-        catch ( boost::bad_lexical_cast err )
-        {
-            CI_LOG_W( "Could not set param " << name << " with value of " << n.getValue() );
-        }
-    }
-}
-
 
 struct server_set_visitor : boost::static_visitor<>
 {
@@ -199,18 +178,53 @@ struct server_set_visitor : boost::static_visitor<>
     }
 };
 
+void WebUI::setClients( const bound_params_container::value_type &pair )
+{
+    server_set_visitor visitor( mServer, pair.first );
+    boost::apply_visitor( visitor, pair.second );
+}
+
+void WebUI::setSelf( const bound_params_container::value_type &pair, const string &value )
+{
+    try
+    {
+        boost::apply_visitor( set_from_string_visitor( value ), pair.second );
+    }
+
+    catch ( boost::bad_lexical_cast err )
+    {
+        CI_LOG_W( "Could not set param " << pair.first << " with value of " << value );
+    }
+}
+
+
+void WebUI::onSet( Event event )
+{
+    for ( const auto &n : event.getData() )
+    {
+        string name = n.getKey();
+        auto it = findParam( name );
+        if ( it == mParams.end() ) continue;
+
+        setSelf( *it, n.getValue() );
+    }
+}
+
+
+
 void WebUI::onGet( Event event )
 {
     string name = event.getData().getValue();
     auto it = findParam( name );
-    if ( it == mParams.end() )
-    {
-        CI_LOG_W( "unknown param: " << name );
-        return;
-    }
+    if ( it == mParams.end() ) return;
 
+    setClients( *it );
+}
 
-    auto &p = it->second;
-    server_set_visitor visitor( mServer, it->first );
-    boost::apply_visitor( visitor, p );
+void WebUI::onParamChange( const string &name )
+{
+    auto it = findParam( name );
+    if ( it == mParams.end() ) return;
+
+    setClients( *it );
 }
