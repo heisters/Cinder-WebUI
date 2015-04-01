@@ -146,62 +146,6 @@ mPtr( ptr )
 
 }
 
-struct from_string_visitor : boost::static_visitor<>
-{
-    from_string_visitor( const string &s ) : str( s ) {};
-    string str;
-
-    template< typename T >
-    void operator()( T const &value ) const
-    {
-        auto v = *value; // convert to rvalue: "if the value category of expression is lvalue, then the decltype specifies T&"
-        *value = boost::lexical_cast< decltype( v ) >( str );
-    }
-
-};
-
-void ParamUI::Param::setFromString( const string &string )
-{
-    try
-    {
-        boost::apply_visitor( from_string_visitor( string ), mPtr );
-    }
-
-    catch ( boost::bad_lexical_cast err )
-    {
-        CI_LOG_W( "Could not set param " << mName << " with value of " << string );
-    }
-}
-
-struct to_string_visitor : boost::static_visitor<>
-{
-    to_string_visitor() : str( "" ) {};
-    string str;
-
-    template< typename T >
-    void operator()( T const &value )
-    {
-        str = boost::lexical_cast< string >( *value );
-    }
-};
-
-string ParamUI::Param::getString()
-{
-    string str = "";
-    try
-    {
-        to_string_visitor visitor;
-        boost::apply_visitor( visitor, mPtr );
-        str = visitor.str;
-    }
-    catch ( boost::bad_lexical_cast err )
-    {
-        CI_LOG_W( "Could not get string from param " << mName );
-    }
-
-    return str;
-}
-
 #pragma mark -- ParamUI
 
 ParamUI::ParamUI()
@@ -216,6 +160,21 @@ ParamUI::ParamContainer::iterator ParamUI::findParam( const string &name )
     return mParams.find( name );
 }
 
+
+struct from_string_visitor : boost::static_visitor<>
+{
+    from_string_visitor( const string &s ) : str( s ) {};
+    string str;
+
+    template< typename T >
+    void operator()( T const &value ) const
+    {
+        auto v = *value; // convert to rvalue: "if the value category of expression is lvalue, then the decltype specifies T&"
+        *value = boost::lexical_cast< decltype( v ) >( str );
+    }
+    
+};
+
 void ParamUI::onSet( Event event )
 {
     for ( const auto &n : event.getData() )
@@ -228,9 +187,33 @@ void ParamUI::onSet( Event event )
             return;
         }
 
-        it->second.setFromString( n.getValue() );
+
+        auto &p = it->second;
+        try
+        {
+            boost::apply_visitor( from_string_visitor( n.getValue() ), p.mPtr );
+        }
+
+        catch ( boost::bad_lexical_cast err )
+        {
+            CI_LOG_W( "Could not set param " << p.mName << " with value of " << n.getValue() );
+        }
     }
 }
+
+
+struct server_set_visitor : boost::static_visitor<>
+{
+    server_set_visitor( Server &s, const string &n ) : server( s ), name( n )  {};
+    Server &server;
+    string name;
+
+    template< typename T >
+    void operator()( T const &value )
+    {
+        server.set( name, *value );
+    }
+};
 
 void ParamUI::onGet( Event event )
 {
@@ -242,6 +225,8 @@ void ParamUI::onGet( Event event )
         return;
     }
 
-    string value = it->second.getString();
-    mServer.set( it->first, value );
+
+    auto &p = it->second;
+    server_set_visitor visitor( mServer, it->first );
+    boost::apply_visitor( visitor, p.mPtr );
 }

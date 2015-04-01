@@ -74,16 +74,10 @@ class ParamUI : public BaseUI
 public:
     ParamUI();
 
-    class Param
+    struct Param
     {
-    public:
         Param( const std::string &name, float *ptr );
-
-        void                        setFromString( const std::string &string );
-        std::string                 getString();
-
         typedef boost::variant< float * > ptr_t;
-    private:
         std::string                 mName;
         ptr_t                       mPtr;
     };
