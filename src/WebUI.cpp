@@ -4,6 +4,7 @@
 
 using namespace ci;
 using namespace std;
+using namespace glm;
 using namespace webui;
 
 #pragma mark -- Event
@@ -63,11 +64,8 @@ void Server::onRead( string msg )
     try
     {
         parsed = JsonTree( msg );
-    }
-
-    catch( JsonTree::Exception err )
-    {
-        CI_LOG_W( "could not parse message: " << msg );
+    } catch ( JsonTree::ExcJsonParserError err ) {
+        CI_LOG_W( "Could not parse JSON: " << msg << " " << err.what() );
         return;
     }
 
@@ -101,17 +99,34 @@ void Server::get( const string &name )
     write( ss.str() );
 }
 
+JsonTree makeSetJSON( const JsonTree &valueJSON )
+{
+    JsonTree json = JsonTree::makeObject();
+    json.addChild( JsonTree::makeObject( "set" ) );
+    json.getChild( "set" ).addChild( valueJSON );
+    return json;
+}
+
 template< typename T >
 void Server::set( const string &name, const T &value )
 {
     stringstream ss;
-    JsonTree json = JsonTree::makeObject();
-    json.addChild( JsonTree::makeObject( "set" ) );
-    json.getChild( "set" ).addChild( JsonTree( name, value ) );
+    JsonTree json = makeSetJSON( JsonTree( name, value ) );
     ss << json;
     write( ss.str() );
 }
 
+void Server::set( const string &name, const vec3 &value )
+{
+    stringstream ss;
+    JsonTree valueJSON = JsonTree::makeArray( name );
+    valueJSON.addChild( JsonTree( "", value.x ) );
+    valueJSON.addChild( JsonTree( "", value.y ) );
+    valueJSON.addChild( JsonTree( "", value.z ) );
+    JsonTree json = makeSetJSON( valueJSON );
+    ss << json;
+    write( ss.str() );
+}
 
 void Server::dispatch( const Event &event )
 {
@@ -150,19 +165,25 @@ WebUI::bound_params_container::iterator WebUI::findParam( const string &name )
     return it;
 }
 
-struct set_from_string_visitor : boost::static_visitor<>
+struct set_from_json_visitor : boost::static_visitor<>
 {
-    set_from_string_visitor( const string &s ) : str( s ) {};
-    string str;
+    set_from_json_visitor( const JsonTree &j ) : json( j ) {};
+    JsonTree json;
 
-    template< typename bound_param_t >
-    void operator()( bound_param_t const &param ) const
+    template< typename T >
+    void operator()( T const &param_ptr ) const
     {
-        auto v = (*param)();
-        param->set( boost::lexical_cast< decltype( v ) >( str ),
-                   false );
+        auto v = (*param_ptr)();
+        param_ptr->set( json.getValue< decltype( v ) >(), false );
     }
-    
+
+    void operator()( BoundParam< vec3 >* const &param_ptr ) const
+    {
+        vec3 v( json.getChild( 0 ).getValue< float >(),
+                json.getChild( 1 ).getValue< float >(),
+                json.getChild( 2 ).getValue< float >() );
+        param_ptr->set( v, false );
+    }
 };
 
 struct server_set_visitor : boost::static_visitor<>
@@ -174,7 +195,7 @@ struct server_set_visitor : boost::static_visitor<>
     template< typename T >
     void operator()( T const &value )
     {
-        server.set( name, *value );
+        server.set( name, (*value)() );
     }
 };
 
@@ -184,11 +205,11 @@ void WebUI::setClients( const bound_params_container::value_type &pair )
     boost::apply_visitor( visitor, pair.second );
 }
 
-void WebUI::setSelf( const bound_params_container::value_type &pair, const string &value )
+void WebUI::setSelf( const bound_params_container::value_type &pair, const JsonTree &value )
 {
     try
     {
-        boost::apply_visitor( set_from_string_visitor( value ), pair.second );
+        boost::apply_visitor( set_from_json_visitor( value ), pair.second );
     }
 
     catch ( boost::bad_lexical_cast err )
@@ -200,13 +221,15 @@ void WebUI::setSelf( const bound_params_container::value_type &pair, const strin
 
 void WebUI::onSet( Event event )
 {
+    CI_LOG_V( event.getData() );
     for ( const auto &n : event.getData() )
     {
+        CI_LOG_V( n );
         string name = n.getKey();
         auto it = findParam( name );
         if ( it == mParams.end() ) continue;
 
-        setSelf( *it, n.getValue() );
+        setSelf( *it, n );
     }
 }
 

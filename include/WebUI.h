@@ -40,6 +40,7 @@ public:
     void                        get( const std::string &name );
     template< typename T >
     void                        set( const std::string &name, const T &value );
+    void                        set( const std::string &name, const glm::vec3 &value );
 
 private:
     void						onConnect();
@@ -93,7 +94,7 @@ public:
     void                            update();
     void                            listen( uint16_t port );
 
-    typedef boost::variant< BoundParam< float >* > bound_param_ptr;
+    typedef boost::variant< BoundParam< float >*, BoundParam< glm::vec3 >* > bound_param_ptr;
     typedef std::map< std::string, bound_param_ptr > bound_params_container;
 
     template< typename T >
@@ -110,7 +111,7 @@ private:
     void                            onGet( Event event );
     void                            onParamChange( const std::string &name );
     void                            setClients( const bound_params_container::value_type &pair );
-    void                            setSelf( const bound_params_container::value_type &pair, const std::string &value );
+    void                            setSelf( const bound_params_container::value_type &pair, const ci::JsonTree &value );
 
     bound_params_container          mParams;
 

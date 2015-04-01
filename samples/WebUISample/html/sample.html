@@ -5,14 +5,28 @@
   </head>
   <body>
     <form id="controls" action="">
-      <label for="width">Width</label>
-      <input id="width" type="range" min="0" max="1" step="0.01" />
+      <label for="scale">Scale</label>
+      <input id="scale" type="range" min="0" max="1" step="0.01" />
+
+      <fieldset id="center">
+        <legend>Center</legend>
+
+        <label for="center-x">X</label>
+        <input id="center-x" type="range" min="-5" max="5" step="0.1" />
+
+        <label for="center-y">Y</label>
+        <input id="center-y" type="range" min="-5" max="5" step="0.1" />
+
+        <label for="center-z">Z</label>
+        <input id="center-z" type="range" min="-5" max="5" step="0.1" />
+      </fieldset>
     </form>
 
 
     <script type="text/javascript">
       var client = new WebUIClient.ParamClient( document.getElementById( "controls" ) );
-      client.bind( document.getElementById( "width" ) );
+      client.bind( document.getElementById( "scale" ) );
+      client.bind( document.getElementById( "center" ) );
       client.connect( "ws://localhost:9002" );
     </script>
   </body>

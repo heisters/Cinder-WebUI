@@ -9,14 +9,16 @@ public:
     WebUISampleApp();
 
 	void setup() override;
+    void resize() override;
     void keyDown( ci::app::KeyEvent event ) override;
 	void update() override;
 	void draw() override;
 
 private:
-
-    webui::WebUI    mUI;
-    webui::BoundParam< float > mWidth;
+    ci::CameraPersp                 mCam;
+    webui::WebUI                    mUI;
+    webui::BoundParam< float >      mScale;
+    webui::BoundParam< glm::vec3 >  mCenter;
 };
 
 using namespace ci;
@@ -24,7 +26,7 @@ using namespace ci::app;
 using namespace std;
 
 WebUISampleApp::WebUISampleApp() :
-mWidth( 1.f )
+mScale( 0.5f )
 {
 }
 
@@ -36,19 +38,28 @@ void WebUISampleApp::setup()
 
     mUI.listen( 9002 );
 
-    mUI.bind( "width", &mWidth );
+    mUI.bind( "scale", &mScale );
+    mUI.bind( "center", &mCenter );
+
+    resize();
+}
+
+void WebUISampleApp::resize()
+{
+    mCam.lookAt( vec3( 0, 0, 10 ), vec3( 0 ) );
+    mCam.setPerspective( 45.f, getWindowAspectRatio(), 1.f, 20.f );
 }
 
 void WebUISampleApp::keyDown( KeyEvent event )
 {
     if ( event.getCode() == KeyEvent::KEY_UP )
     {
-        mWidth += 0.1;
+        mScale += 0.1;
     }
 
     else if ( event.getCode() == KeyEvent::KEY_DOWN )
     {
-        mWidth -= 0.1;
+        mScale -= 0.1;
     }
 }
 
@@ -61,16 +72,10 @@ void WebUISampleApp::update()
 void WebUISampleApp::draw()
 {
 	gl::clear( Color( 0, 0, 0 ) );
+    gl::setMatrices( mCam );
 
-    gl::ScopedColor scp_color( ColorAf( 1.f, 0.0, 0.0, 1.0 ) );
-
-    Rectf r = getWindowBounds();
-    r.scaleCentered( vec2( mWidth, 1.f ) );
-    gl::drawSolidRect( r );
+    gl::drawColorCube( mCenter, vec3( 1.f ) * mScale() );
 }
-
-
-
 
 
 CINDER_APP( WebUISampleApp, RendererGl )

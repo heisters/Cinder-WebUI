@@ -182,12 +182,58 @@ function ParamClient( el ) {
 }
 
 Object.defineProperties( ParamClient.prototype, {
-  "nameForElement": { value: function( el ) {
+  "getNameForElement": { value: function( el ) {
     return el.getAttribute( "name" ) || el.getAttribute( "id" );
   } },
 
+  "getValueForElement": { value: function( el ) {
+    var value = undefined;
+
+    if ( el.tagName === "INPUT" ) value = el.value;
+
+    else if ( el.tagName === "FIELDSET" ) {
+      var inputs = el.querySelectorAll( "input" );
+      value = [];
+      for ( var i = 0; i < inputs.length; ++i ) {
+        value[ i ] = inputs[ i ].value;
+      }
+    }
+
+    return value;
+  } },
+
+  "setValueForElement": { value: function( el, value ) {
+    if ( el.tagName === "INPUT" ) el.value = value;
+
+    else if ( el.tagName === "FIELDSET" ) {
+      var inputs = el.querySelectorAll( "input" );
+      for ( var i = 0; i < value.length; ++i ) {
+        inputs[ i ].value = value[ i ];
+      }
+    }
+  } },
+
+  "hasInput": { value: function( name ) {
+    return name in this.inputs;
+  } },
+
+  "getInput": { value: function( name ) {
+    var input = this.inputs[ name ];
+    if ( !input ) {
+      console.warn( "unrecognized input:", name );
+    }
+
+    return input;
+  } },
+
+  "getParentFieldset": { value: function( el ) {
+    var parent = el;
+    while ( parent && parent.tagName !== "FIELDSET" ) parent = parent.parentElement;
+    return parent;
+  } },
+
   "bind": { value: function( input ) {
-    var name = this.nameForElement( input );
+    var name = this.getNameForElement( input );
     if ( !name ) return;
 
     this.inputs[ name ] = input;
@@ -202,9 +248,20 @@ Object.defineProperties( ParamClient.prototype, {
   "onElInput": { value: function( event ) {
     event.stopPropagation();
 
-    var name = this.nameForElement( event.target );
-    if ( this.inputs[ name ] ) {
-      this.set( name, event.target.value );
+    var name = this.getNameForElement( event.target );
+    if ( this.hasInput( name ) ) {
+      this.set( name, this.getValueForElement( this.getInput( name ) ) );
+
+
+    } else {
+      var fs = this.getParentFieldset( event.target )
+      if ( fs ) {
+        name = this.getNameForElement( fs );
+        this.set( name, this.getValueForElement( fs ) );
+
+      } else {
+        console.warn( "unrecognized input:", name );
+      }
     }
   } },
 
@@ -214,15 +271,17 @@ Object.defineProperties( ParamClient.prototype, {
 
   "onGet": { value: function( event ) {
     var name = event.data;
-    if ( this.inputs[ name ] ) {
-      this.set( name, this.inputs[ name ].value );
+    var input = this.getInput( name );
+    if ( input ) {
+      this.set( name, this.getValueForElement( input ) );
     }
   } },
 
   "onSet": { value: function( event ) {
     for ( var name in event.data ) {
-      if ( this.inputs[ name ] ) {
-        this.inputs[ name ].value = event.data[ name ];
+      var input = this.getInput( name );
+      if ( input ) {
+        this.setValueForElement( input, event.data[ name ] );
       }
     }
   } }
