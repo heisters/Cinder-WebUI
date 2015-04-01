@@ -119,43 +119,36 @@ void Server::dispatch( const Event &event )
 }
 
 
-#pragma mark -- BaseUI
+#pragma mark -- WebUI::Param
 
-BaseUI::BaseUI()
-{
-}
-
-void BaseUI::update()
-{
-    mServer.poll();
-}
-
-void BaseUI::listen( uint16_t port )
-{
-    mServer.listen( port );
-    CI_LOG_I( "WebUI listening on port " << port );
-}
-
-
-#pragma mark -- ParamUI::Param
-
-ParamUI::Param::Param( const string &name, float *ptr ) :
+WebUI::Param::Param( const string &name, float *ptr ) :
 mName( name ),
 mPtr( ptr )
 {
 
 }
 
-#pragma mark -- ParamUI
+#pragma mark -- WebUI
 
-ParamUI::ParamUI()
+WebUI::WebUI()
 {
-    mServer.getEventSignal( Event::Type::SET ).connect( ::std::bind( &ParamUI::onSet, this, ::std::placeholders::_1 ) );
+    mServer.getEventSignal( Event::Type::SET ).connect( ::std::bind( &WebUI::onSet, this, ::std::placeholders::_1 ) );
 
-    mServer.getEventSignal( Event::Type::GET ).connect( ::std::bind( &ParamUI::onGet, this, ::std::placeholders::_1 ) );
+    mServer.getEventSignal( Event::Type::GET ).connect( ::std::bind( &WebUI::onGet, this, ::std::placeholders::_1 ) );
 }
 
-ParamUI::ParamContainer::iterator ParamUI::findParam( const string &name )
+void WebUI::update()
+{
+    mServer.poll();
+}
+
+void WebUI::listen( uint16_t port )
+{
+    mServer.listen( port );
+    CI_LOG_I( "WebUI listening on port " << port );
+}
+
+WebUI::ParamContainer::iterator WebUI::findParam( const string &name )
 {
     return mParams.find( name );
 }
@@ -175,7 +168,7 @@ struct from_string_visitor : boost::static_visitor<>
     
 };
 
-void ParamUI::onSet( Event event )
+void WebUI::onSet( Event event )
 {
     for ( const auto &n : event.getData() )
     {
@@ -215,7 +208,7 @@ struct server_set_visitor : boost::static_visitor<>
     }
 };
 
-void ParamUI::onGet( Event event )
+void WebUI::onGet( Event event )
 {
     string name = event.getData().getValue();
     auto it = findParam( name );

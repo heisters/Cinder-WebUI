@@ -54,25 +54,14 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////
-// BaseUI
-class BaseUI
+// WebUI
+class WebUI
 {
 public:
-    BaseUI();
+    WebUI();
 
     void                        update();
     void                        listen( uint16_t port );
-
-protected:
-    Server                      mServer;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// ParamUI
-class ParamUI : public BaseUI
-{
-public:
-    ParamUI();
 
     struct Param
     {
@@ -97,6 +86,7 @@ private:
 
     ParamContainer                  mParams;
 
+    Server                      mServer;
 };
 
 } // end namespace webui
