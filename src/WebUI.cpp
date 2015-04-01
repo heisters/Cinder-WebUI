@@ -55,13 +55,10 @@ void Server::onError( string err )
 
 void Server::onPing( string msg )
 {
-    CI_LOG_V( "ping: " << msg );
 }
 
 void Server::onRead( string msg )
 {
-    CI_LOG_V( "read: " << msg );
-
     JsonTree parsed;
     try
     {
@@ -149,11 +146,6 @@ mPtr( ptr )
 
 }
 
-ParamUI::ParamOptions & ParamUI::Param::getOptions()
-{
-    return mOptions;
-}
-
 struct from_string_visitor : boost::static_visitor<>
 {
     from_string_visitor( const string &s ) : str( s ) {};
@@ -168,18 +160,6 @@ struct from_string_visitor : boost::static_visitor<>
 
 };
 
-struct to_string_visitor : boost::static_visitor<>
-{
-    to_string_visitor() : str( "" ) {};
-    string str;
-
-    template< typename T >
-    void operator()( T const &value )
-    {
-        str = boost::lexical_cast< string >( *value );
-    }
-};
-
 void ParamUI::Param::setFromString( const string &string )
 {
     try
@@ -192,6 +172,18 @@ void ParamUI::Param::setFromString( const string &string )
         CI_LOG_W( "Could not set param " << mName << " with value of " << string );
     }
 }
+
+struct to_string_visitor : boost::static_visitor<>
+{
+    to_string_visitor() : str( "" ) {};
+    string str;
+
+    template< typename T >
+    void operator()( T const &value )
+    {
+        str = boost::lexical_cast< string >( *value );
+    }
+};
 
 string ParamUI::Param::getString()
 {
@@ -217,12 +209,6 @@ ParamUI::ParamUI()
     mServer.getEventSignal( Event::Type::SET ).connect( ::std::bind( &ParamUI::onSet, this, ::std::placeholders::_1 ) );
 
     mServer.getEventSignal( Event::Type::GET ).connect( ::std::bind( &ParamUI::onGet, this, ::std::placeholders::_1 ) );
-}
-
-ParamUI::ParamOptions & ParamUI::bind( const string &name, float *floatParam )
-{
-    mParams.emplace( name, Param( name, floatParam ) );
-    return mParams.at( name ).getOptions();
 }
 
 ParamUI::ParamContainer::iterator ParamUI::findParam( const string &name )

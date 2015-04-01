@@ -74,30 +74,27 @@ class ParamUI : public BaseUI
 public:
     ParamUI();
 
-    class ParamOptions
-    {
-
-    };
-
     class Param
     {
     public:
         Param( const std::string &name, float *ptr );
 
-        ParamOptions &              getOptions();
-
         void                        setFromString( const std::string &string );
         std::string                 getString();
-        
+
         typedef boost::variant< float * > ptr_t;
     private:
         std::string                 mName;
-        ParamOptions                mOptions;
         ptr_t                       mPtr;
     };
     typedef std::map< std::string, Param > ParamContainer;
 
-    ParamOptions &                  bind( const std::string &name, float *floatParam );
+    template< typename T >
+    void                            bind( const std::string &name, T *param )
+    {
+        mParams.emplace( name, Param( name, param ) );
+    }
+
     ParamContainer::iterator        findParam( const std::string &name );
 
 private:
