@@ -9,14 +9,14 @@ public:
     WebUISampleApp();
 
 	void setup() override;
-    void mouseDown( ci::app::MouseEvent event ) override;
+    void keyDown( ci::app::KeyEvent event ) override;
 	void update() override;
 	void draw() override;
 
 private:
 
     webui::WebUI    mUI;
-    float           mWidth;
+    webui::BoundParam< float > mWidth;
 };
 
 using namespace ci;
@@ -39,8 +39,17 @@ void WebUISampleApp::setup()
     mUI.bind( "width", &mWidth );
 }
 
-void WebUISampleApp::mouseDown( MouseEvent event )
+void WebUISampleApp::keyDown( KeyEvent event )
 {
+    if ( event.getCode() == KeyEvent::KEY_UP )
+    {
+        mWidth += 0.1;
+    }
+
+    else if ( event.getCode() == KeyEvent::KEY_DOWN )
+    {
+        mWidth -= 0.1;
+    }
 }
 
 void WebUISampleApp::update()

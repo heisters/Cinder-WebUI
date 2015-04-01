@@ -119,15 +119,6 @@ void Server::dispatch( const Event &event )
 }
 
 
-#pragma mark -- WebUI::Param
-
-WebUI::Param::Param( const string &name, float *ptr ) :
-mName( name ),
-mPtr( ptr )
-{
-
-}
-
 #pragma mark -- WebUI
 
 WebUI::WebUI()
@@ -148,7 +139,7 @@ void WebUI::listen( uint16_t port )
     CI_LOG_I( "WebUI listening on port " << port );
 }
 
-WebUI::ParamContainer::iterator WebUI::findParam( const string &name )
+WebUI::bound_params_container::iterator WebUI::findParam( const string &name )
 {
     return mParams.find( name );
 }
@@ -159,11 +150,11 @@ struct from_string_visitor : boost::static_visitor<>
     from_string_visitor( const string &s ) : str( s ) {};
     string str;
 
-    template< typename T >
-    void operator()( T const &value ) const
+    template< typename bound_param_t >
+    void operator()( bound_param_t const &param ) const
     {
-        auto v = *value; // convert to rvalue: "if the value category of expression is lvalue, then the decltype specifies T&"
-        *value = boost::lexical_cast< decltype( v ) >( str );
+        auto v = (*param)();
+        *param = boost::lexical_cast< decltype( v ) >( str );
     }
     
 };
@@ -184,12 +175,12 @@ void WebUI::onSet( Event event )
         auto &p = it->second;
         try
         {
-            boost::apply_visitor( from_string_visitor( n.getValue() ), p.mPtr );
+            boost::apply_visitor( from_string_visitor( n.getValue() ), p );
         }
 
         catch ( boost::bad_lexical_cast err )
         {
-            CI_LOG_W( "Could not set param " << p.mName << " with value of " << n.getValue() );
+            CI_LOG_W( "Could not set param " << name << " with value of " << n.getValue() );
         }
     }
 }
@@ -221,5 +212,5 @@ void WebUI::onGet( Event event )
 
     auto &p = it->second;
     server_set_visitor visitor( mServer, it->first );
-    boost::apply_visitor( visitor, p.mPtr );
+    boost::apply_visitor( visitor, p );
 }

@@ -54,39 +54,56 @@ private:
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+// BoundParam
+template< typename T >
+class BoundParam
+{
+public:
+    typedef T value;
+
+    BoundParam() {};
+    BoundParam( const T &v ) : mValue( v ) {};
+
+    operator                    T () const { return mValue; }
+    T operator                  () () const { return mValue; }
+    T & operator                () () { return mValue; }
+    T & operator                = ( const T & v ) { mValue = v; return mValue; }
+    T & operator                += ( const T & v ) { mValue += v; return mValue; }
+    T & operator                -= ( const T & v ) { mValue -= v; return mValue; }
+    T & operator                ++ () { mValue++; return mValue; }
+    T & operator                -- () { mValue--; return mValue; }
+private:
+    T                           mValue;
+};
+
+////////////////////////////////////////////////////////////////////////////////
 // WebUI
 class WebUI
 {
 public:
     WebUI();
 
-    void                        update();
-    void                        listen( uint16_t port );
+    void                            update();
+    void                            listen( uint16_t port );
 
-    struct Param
-    {
-        Param( const std::string &name, float *ptr );
-        typedef boost::variant< float * > ptr_t;
-        std::string                 mName;
-        ptr_t                       mPtr;
-    };
-    typedef std::map< std::string, Param > ParamContainer;
+    typedef boost::variant< BoundParam< float >* > bound_param_ptr;
+    typedef std::map< std::string, bound_param_ptr > bound_params_container;
 
     template< typename T >
     void                            bind( const std::string &name, T *param )
     {
-        mParams.emplace( name, Param( name, param ) );
+        mParams.emplace( name, param );
     }
 
-    ParamContainer::iterator        findParam( const std::string &name );
+    bound_params_container::iterator findParam( const std::string &name );
 
 private:
     void                            onSet( Event event );
     void                            onGet( Event event );
 
-    ParamContainer                  mParams;
+    bound_params_container          mParams;
 
-    Server                      mServer;
+    Server                          mServer;
 };
 
 } // end namespace webui
