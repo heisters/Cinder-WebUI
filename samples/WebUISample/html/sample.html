@@ -2,41 +2,60 @@
 <html>
   <head>
     <script src="client.js" type="text/javascript"></script>
+    <link href="basic.css" rel="stylesheet" type="text/css">
   </head>
   <body>
-    <form id="controls" action="">
-      <label for="radius">Radius</label>
-      <input id="radius" type="range" min="0" max="1" step="0.01" />
+    <div class="grid grid-pad">
+      <div class="col-1-1">
+        <h1>WebUI Sample Client</h1>
+      </div>
+      <form id="controls" action="">
+        <div class="col-1-2">
+          <div class="content controls aligned">
+            <label for="radius">Radius</label>
+            <input id="radius" type="range" min="0" max="1" step="0.01" />
 
-      <label for="subdivisions">Subdivisions</label>
-      <input id="subdivisions" type="range" min="6" max="48" step="1" />
+            <label for="subdivisions">Subdivisions</label>
+            <input id="subdivisions" type="range" min="6" max="48" step="1" />
 
-      <fieldset id="rotation">
-        <legend>Rotation</legend>
+            <label for="num-cubes">Number of Cubes</label>
+            <input id="num-cubes" type="number" min="1" max="10" />
+          </div>
+        </div>
 
-        <label for="rotation-x">X</label>
-        <input id="rotation-x" type="range" min="-1" max="1" step="0.1" />
+        <div class="col-1-2">
+          <div class="content">
+            <fieldset id="rotation">
+              <legend>Rotation</legend>
 
-        <label for="rotation-y">Y</label>
-        <input id="rotation-y" type="range" min="-1" max="1" step="0.1" />
+              <label for="rotation-x">X
+                <input id="rotation-x" type="range" min="-1" max="1" step="0.1" />
+              </label>
 
-        <label for="rotation-z">Z</label>
-        <input id="rotation-z" type="range" min="-1" max="1" step="0.1" />
-      </fieldset>
+              <label for="rotation-y">Y
+                <input id="rotation-y" type="range" min="-1" max="1" step="0.1" />
+              </label>
 
-      <fieldset id="center">
-        <legend>Center</legend>
+              <label for="rotation-z">Z
+                <input id="rotation-z" type="range" min="-1" max="1" step="0.1" />
+              </label>
+            </fieldset>
 
-        <label for="center-x">X</label>
-        <input id="center-x" type="range" min="-5" max="5" step="0.1" />
+            <fieldset id="center">
+              <legend>Center</legend>
 
-        <label for="center-y">Y</label>
-        <input id="center-y" type="range" min="-5" max="5" step="0.1" />
-      </fieldset>
+              <label for="center-x">X
+                <input id="center-x" type="range" min="-5" max="5" step="0.1" />
+              </label>
 
-      <label for="num-cubes">Number of Cubes</label>
-      <input id="num-cubes" type="number" min="1" max="10" />
-    </form>
+              <label for="center-y">Y
+                <input id="center-y" type="range" min="-5" max="5" step="0.1" />
+              </label>
+            </fieldset>
+          </div>
+        </div>
+      </form>
+    </div>
 
 
     <script type="text/javascript">
@@ -46,6 +65,7 @@
       client.bind( document.getElementById( "rotation" ) );
       client.bind( document.getElementById( "center" ) );
       client.bind( document.getElementById( "num-cubes" ) );
+      client.events.bind( "connected", function() { client.getAll(); } );
       client.connect( "ws://localhost:9002" );
     </script>
   </body>

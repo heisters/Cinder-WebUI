@@ -57,7 +57,7 @@ exports.Client = Client;
 exports.ParamClient = ParamClient;
 
 ///////////////////////////////////////////////////////////////////////////////
-// Event
+// UIEvent
 UIEvent.Type = { UNKNOWN: "unknown", GET: "get", SET: "set" };
 
 function UIEvent() {
@@ -202,12 +202,17 @@ Object.defineProperties( ParamClient.prototype, {
   } },
 
   "setValueForElement": { value: function( el, value ) {
-    if ( el.tagName === "INPUT" ) el.value = value;
+    if ( el.tagName === "INPUT" ) {
+      el.value = value;
+      var event = new Event( 'change', { 'view': window, 'bubbles': true, 'cancelable': true } );
+      el.dispatchEvent( event );
+      var event = new Event( 'input', { 'view': window, 'bubbles': true, 'cancelable': true } );
+      el.dispatchEvent( event );
 
-    else if ( el.tagName === "FIELDSET" ) {
+    } else if ( el.tagName === "FIELDSET" ) {
       var inputs = el.querySelectorAll( "input" );
       for ( var i = 0; i < value.length; ++i ) {
-        inputs[ i ].value = value[ i ];
+        this.setValueForElement( inputs[ i ], value[ i ] );
       }
     }
   } },
@@ -238,15 +243,13 @@ Object.defineProperties( ParamClient.prototype, {
     this.inputs[ name ] = input;
   } },
 
-  "sync": { value: function() {
+  "getAll": { value: function() {
     for( var n in this.inputs ) {
       this.get( n );
     }
   } },
 
   "onElInput": { value: function( event ) {
-    event.stopPropagation();
-
     var name = this.getNameForElement( event.target );
     if ( this.hasInput( name ) ) {
       this.set( name, this.getValueForElement( this.getInput( name ) ) );
@@ -265,7 +268,8 @@ Object.defineProperties( ParamClient.prototype, {
   } },
 
   "onWSOpen": { value: function( event ) {
-    this.sync();
+    console.log( "Connected." );
+    this.events.trigger( "connected", event );
   } },
 
   "onGet": { value: function( event ) {

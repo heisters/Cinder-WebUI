@@ -1,0 +1,92 @@
+@import "normalize.css";
+@import "simplegrid.css";
+/* All Roboto:
+@import url(http://fonts.googleapis.com/css?family=Roboto:400,100,100italic,300,300italic,400italic,500,500italic,700,700italic,900,900italic);
+*/
+@import url(http://fonts.googleapis.com/css?family=Roboto:400,900);
+
+html {
+  font-family: 'Roboto', 'Helvetica', sans-serif;
+  color: #000;
+  text-transform: uppercase;
+}
+
+body {
+  background: #FFF;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 900;
+}
+
+input {
+  background: #FFF;
+  border: 1px solid #000;
+  height: 1.2em;
+  font-size: 12pt;
+  vertical-align: middle;
+}
+
+input:focus {
+  outline: none;
+}
+
+label {
+  display: inline-block;
+}
+
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  margin-bottom: 0.5em;
+}
+
+* {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+
+/* Aligned labels and inputs */
+.controls.aligned label, .controls.aligned input {
+  display: inline-block;
+}
+
+.controls.aligned label {
+  width: 30%;
+}
+.controls.aligned.right label {
+  text-align: right;
+}
+
+.controls.aligned label + input {
+  width: 30%;
+  margin: 0 30% 0 4%;
+}
+
+
+
+/* Range input customizations */
+
+input[type='range'] {
+  box-sizing: border-box;
+  overflow: visible;
+  -webkit-appearance: none;
+  background: transparent;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: 100%;
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 0.25em;
+  height: 1.2em;
+  background: #000;
+}
+
+
+input[type='range']::-webkit-slider-thumb:hover, input[type='range']::-webkit-slider-thumb:focus {
+  background: #F00;
+}
