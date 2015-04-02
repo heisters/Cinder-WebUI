@@ -38,9 +38,7 @@ mSubdivisions( 12 )
 
 void WebUISampleApp::setup()
 {
-    log::manager()->enableSystemLogging();
-    log::manager()->setSystemLoggingLevel( log::LEVEL_INFO );
-//    log::manager()->enableConsoleLogging();
+    log::manager()->enableConsoleLogging();
 
     mUI.listen( 9002 );
 
@@ -88,7 +86,6 @@ void WebUISampleApp::draw()
         gl::ScopedModelMatrix scp_mtx;
         vec2 center = mCenter() + vec2( float(i) * mRadius * 2.f + ( mNumCubes - 1 ) * -mRadius, 0.f );
 
-//        gl::translate( -center );
         gl::translate( center );
         gl::rotate( 1.f, mRotation() * float( M_PI ) * 2.f );
         gl::drawSphere( vec3( 0.f ), mRadius, mSubdivisions );
