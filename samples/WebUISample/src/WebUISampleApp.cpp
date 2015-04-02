@@ -17,8 +17,10 @@ public:
 private:
     ci::CameraPersp                 mCam;
     webui::WebUI                    mUI;
-    webui::BoundParam< float >      mScale;
-    webui::BoundParam< glm::vec3 >  mCenter;
+    webui::BoundParam< float >      mRadius;
+    webui::BoundParam< glm::vec2 >  mCenter;
+    webui::BoundParam< glm::vec3 >  mRotation;
+    webui::BoundParam< int >        mNumCubes, mSubdivisions;
 };
 
 using namespace ci;
@@ -26,7 +28,11 @@ using namespace ci::app;
 using namespace std;
 
 WebUISampleApp::WebUISampleApp() :
-mScale( 0.5f )
+mRadius( 0.5f ),
+mCenter( vec2( 0.f ) ),
+mRotation( vec3( 0.1f ) ),
+mNumCubes( 1 ),
+mSubdivisions( 12 )
 {
 }
 
@@ -38,8 +44,11 @@ void WebUISampleApp::setup()
 
     mUI.listen( 9002 );
 
-    mUI.bind( "scale", &mScale );
+    mUI.bind( "radius", &mRadius );
     mUI.bind( "center", &mCenter );
+    mUI.bind( "rotation", &mRotation );
+    mUI.bind( "num-cubes", &mNumCubes );
+    mUI.bind( "subdivisions", &mSubdivisions );
 
     resize();
 }
@@ -54,12 +63,12 @@ void WebUISampleApp::keyDown( KeyEvent event )
 {
     if ( event.getCode() == KeyEvent::KEY_UP )
     {
-        mScale += 0.1;
+        mRadius += 0.1;
     }
 
     else if ( event.getCode() == KeyEvent::KEY_DOWN )
     {
-        mScale -= 0.1;
+        mRadius -= 0.1;
     }
 }
 
@@ -74,7 +83,16 @@ void WebUISampleApp::draw()
 	gl::clear( Color( 0, 0, 0 ) );
     gl::setMatrices( mCam );
 
-    gl::drawColorCube( mCenter, vec3( 1.f ) * mScale() );
+    for ( int i = 0; i < mNumCubes; ++i )
+    {
+        gl::ScopedModelMatrix scp_mtx;
+        vec2 center = mCenter() + vec2( float(i) * mRadius * 2.f + ( mNumCubes - 1 ) * -mRadius, 0.f );
+
+//        gl::translate( -center );
+        gl::translate( center );
+        gl::rotate( 1.f, mRotation() * float( M_PI ) * 2.f );
+        gl::drawSphere( vec3( 0.f ), mRadius, mSubdivisions );
+    }
 }
 
 

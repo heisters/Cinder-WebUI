@@ -40,6 +40,7 @@ public:
     void                        get( const std::string &name );
     template< typename T >
     void                        set( const std::string &name, const T &value );
+    void                        set( const std::string &name, const glm::vec2 &value );
     void                        set( const std::string &name, const glm::vec3 &value );
 
 private:
@@ -94,7 +95,7 @@ public:
     void                            update();
     void                            listen( uint16_t port );
 
-    typedef boost::variant< BoundParam< float >*, BoundParam< glm::vec3 >* > bound_param_ptr;
+    typedef boost::variant< BoundParam< int >*, BoundParam< float >*, BoundParam< glm::vec2 >*, BoundParam< glm::vec3 >* > bound_param_ptr;
     typedef std::map< std::string, bound_param_ptr > bound_params_container;
 
     template< typename T >
@@ -104,9 +105,9 @@ public:
         mParams.insert( make_pair( name, param ) );
     }
 
-    bound_params_container::iterator findParam( const std::string &name );
-
 private:
+
+    bound_params_container::iterator findParam( const std::string &name );
     void                            onSet( Event event );
     void                            onGet( Event event );
     void                            onParamChange( const std::string &name );

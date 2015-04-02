@@ -5,8 +5,24 @@
   </head>
   <body>
     <form id="controls" action="">
-      <label for="scale">Scale</label>
-      <input id="scale" type="range" min="0" max="1" step="0.01" />
+      <label for="radius">Radius</label>
+      <input id="radius" type="range" min="0" max="1" step="0.01" />
+
+      <label for="subdivisions">Subdivisions</label>
+      <input id="subdivisions" type="range" min="6" max="48" step="1" />
+
+      <fieldset id="rotation">
+        <legend>Rotation</legend>
+
+        <label for="rotation-x">X</label>
+        <input id="rotation-x" type="range" min="-1" max="1" step="0.1" />
+
+        <label for="rotation-y">Y</label>
+        <input id="rotation-y" type="range" min="-1" max="1" step="0.1" />
+
+        <label for="rotation-z">Z</label>
+        <input id="rotation-z" type="range" min="-1" max="1" step="0.1" />
+      </fieldset>
 
       <fieldset id="center">
         <legend>Center</legend>
@@ -16,17 +32,20 @@
 
         <label for="center-y">Y</label>
         <input id="center-y" type="range" min="-5" max="5" step="0.1" />
-
-        <label for="center-z">Z</label>
-        <input id="center-z" type="range" min="-5" max="5" step="0.1" />
       </fieldset>
+
+      <label for="num-cubes">Number of Cubes</label>
+      <input id="num-cubes" type="number" min="1" max="10" />
     </form>
 
 
     <script type="text/javascript">
       var client = new WebUIClient.ParamClient( document.getElementById( "controls" ) );
-      client.bind( document.getElementById( "scale" ) );
+      client.bind( document.getElementById( "radius" ) );
+      client.bind( document.getElementById( "subdivisions" ) );
+      client.bind( document.getElementById( "rotation" ) );
       client.bind( document.getElementById( "center" ) );
+      client.bind( document.getElementById( "num-cubes" ) );
       client.connect( "ws://localhost:9002" );
     </script>
   </body>

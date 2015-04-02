@@ -140,7 +140,6 @@ Object.defineProperties( Client.prototype, {
   } },
 
   "onWSMessage": { value: function( event ) {
-    console.log( event.data );
     var parsed = {};
 
     try {

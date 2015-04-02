@@ -4,7 +4,6 @@
 
 using namespace ci;
 using namespace std;
-using namespace glm;
 using namespace webui;
 
 #pragma mark -- Event
@@ -116,6 +115,17 @@ void Server::set( const string &name, const T &value )
     write( ss.str() );
 }
 
+void Server::set( const string &name, const vec2 &value )
+{
+    stringstream ss;
+    JsonTree valueJSON = JsonTree::makeArray( name );
+    valueJSON.addChild( JsonTree( "", value.x ) );
+    valueJSON.addChild( JsonTree( "", value.y ) );
+    JsonTree json = makeSetJSON( valueJSON );
+    ss << json;
+    write( ss.str() );
+}
+
 void Server::set( const string &name, const vec3 &value )
 {
     stringstream ss;
@@ -177,6 +187,13 @@ struct set_from_json_visitor : boost::static_visitor<>
         param_ptr->set( json.getValue< decltype( v ) >(), false );
     }
 
+    void operator()( BoundParam< vec2 >* const &param_ptr ) const
+    {
+        vec2 v( json.getChild( 0 ).getValue< float >(),
+                json.getChild( 1 ).getValue< float >() );
+        param_ptr->set( v, false );
+    }
+
     void operator()( BoundParam< vec3 >* const &param_ptr ) const
     {
         vec3 v( json.getChild( 0 ).getValue< float >(),
@@ -221,10 +238,8 @@ void WebUI::setSelf( const bound_params_container::value_type &pair, const JsonT
 
 void WebUI::onSet( Event event )
 {
-    CI_LOG_V( event.getData() );
     for ( const auto &n : event.getData() )
     {
-        CI_LOG_V( n );
         string name = n.getKey();
         auto it = findParam( name );
         if ( it == mParams.end() ) continue;
