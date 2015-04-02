@@ -54,7 +54,6 @@ MicroEvent.mixin	= function(destObject){
 ///////////////////////////////////////////////////////////////////////////////
 
 exports.Client = Client;
-exports.ParamClient = ParamClient;
 
 ///////////////////////////////////////////////////////////////////////////////
 // UIEvent
@@ -70,7 +69,13 @@ Object.defineProperties( UIEvent.prototype, {
 
 ///////////////////////////////////////////////////////////////////////////////
 // Client
-function Client() {
+function Client( el ) {
+  this.el = el;
+  this.el.oninput = this.onElInput.bind( this );
+  this.inputs = {};
+
+  this.events.bind( UIEvent.Type.GET, this.onGet.bind( this ) );
+  this.events.bind( UIEvent.Type.SET, this.onSet.bind( this ) );
 }
 
 Object.defineProperties( Client.prototype, {
@@ -83,9 +88,19 @@ Object.defineProperties( Client.prototype, {
     return this._events;
   } },
 
-  "connect": { value: function( url ) {
-    this.url = url;
+  "connect": { value: function( url, options ) {
+    Object.defineProperty( this, "url", { value: url } );
+    Object.defineProperty( this, "options", { value: options } );
+
     console.log( "Connecting to " + this.url );
+
+    this.reconnect();
+  } },
+
+  "reconnect": { value: function() {
+    if ( this.__persistConnectionTimeout ) clearTimeout( this.__persistConnectionTimeout );
+    if ( this.isReady ) this.disconnect();
+    this.ws = undefined;
 
     if ("WebSocket" in window) {
       this.ws = new WebSocket( this.url );
@@ -104,6 +119,14 @@ Object.defineProperties( Client.prototype, {
 
   "disconnect": { value: function() {
     this.ws.close();
+    this.ws = undefined;
+  } },
+
+  "persistConnection": { value: function() {
+    if ( !this.options.persistent ) return;
+    if ( this.__persistConnectionTimeout ) clearTimeout( this.__persistConnectionTimeout );
+    this.ws = undefined;
+    this.__persistConnectionTimeout = setTimeout( function() { this.reconnect(); }.bind( this ), 250 );
   } },
 
   "write": { value: function( msg ) {
@@ -130,13 +153,17 @@ Object.defineProperties( Client.prototype, {
   } },
 
   "onWSOpen": { value: function( event ) {
+    console.log( "Connected." );
+    this.events.trigger( "connected", event );
   } },
 
   "onWSError": { value: function( event ) {
-    console.error( "ERROR:", event );
+    this.persistConnection();
   } },
 
   "onWSClose": { value: function( event ) {
+    this.events.trigger( "closed", event );
+    this.persistConnection();
   } },
 
   "onWSMessage": { value: function( event ) {
@@ -163,24 +190,8 @@ Object.defineProperties( Client.prototype, {
         console.warn( "Unrecognized message:", parsed );
       }
     }
-  } }
-} );
+  } },
 
-///////////////////////////////////////////////////////////////////////////////
-// ParamClient
-ParamClient.prototype = new Client();
-ParamClient.prototype.constructor = ParamClient;
-function ParamClient( el ) {
-  Client.call( this );
-  this.el = el;
-  this.el.oninput = this.onElInput.bind( this );
-  this.inputs = {};
-
-  this.events.bind( UIEvent.Type.GET, this.onGet.bind( this ) );
-  this.events.bind( UIEvent.Type.SET, this.onSet.bind( this ) );
-}
-
-Object.defineProperties( ParamClient.prototype, {
   "getNameForElement": { value: function( el ) {
     return el.getAttribute( "name" ) || el.getAttribute( "id" );
   } },
@@ -265,11 +276,6 @@ Object.defineProperties( ParamClient.prototype, {
         console.warn( "unrecognized input:", name );
       }
     }
-  } },
-
-  "onWSOpen": { value: function( event ) {
-    console.log( "Connected." );
-    this.events.trigger( "connected", event );
   } },
 
   "onGet": { value: function( event ) {
