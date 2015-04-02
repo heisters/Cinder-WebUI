@@ -20,6 +20,9 @@
 
             <label for="num-cubes">Number of Cubes</label>
             <input id="num-cubes" type="number" min="1" max="10" />
+
+            <label for="text">Text</label>
+            <input id="text" type="text" />
           </div>
         </div>
 
@@ -65,6 +68,7 @@
       client.bind( document.getElementById( "rotation" ) );
       client.bind( document.getElementById( "center" ) );
       client.bind( document.getElementById( "num-cubes" ) );
+      client.bind( document.getElementById( "text" ) );
       client.events.bind( "connected", function() { client.getAll(); } );
       client.connect( "ws://localhost:9002" );
     </script>
