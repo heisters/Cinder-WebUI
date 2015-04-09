@@ -138,6 +138,18 @@ void Server::set( const string &name, const vec3 &value )
     write( ss.str() );
 }
 
+void Server::set( const std::string &name, const ci::Colorf &value )
+{
+    stringstream ss;
+    JsonTree valueJSON = JsonTree::makeArray( name );
+    valueJSON.addChild( JsonTree( "", value.r ) );
+    valueJSON.addChild( JsonTree( "", value.g ) );
+    valueJSON.addChild( JsonTree( "", value.b ) );
+    JsonTree json = makeSetJSON( valueJSON );
+    ss << json;
+    write( ss.str() );
+}
+
 void Server::dispatch( const Event &event )
 {
     getEventSignal( event.getType() )( event );
@@ -201,6 +213,14 @@ struct set_from_json_visitor : boost::static_visitor<>
                 json.getChild( 2 ).getValue< float >() );
         param_ptr->set( v, false );
     }
+
+    void operator()( BoundParam< Colorf >* const &param_ptr ) const
+    {
+        Colorf v( json.getChild( 0 ).getValue< float >(),
+                  json.getChild( 1 ).getValue< float >(),
+                  json.getChild( 2 ).getValue< float >() );
+        param_ptr->set( v, false );
+    }
 };
 
 struct server_set_visitor : boost::static_visitor<>
@@ -229,9 +249,9 @@ void WebUI::setSelf( const bound_params_container::value_type &pair, const JsonT
         boost::apply_visitor( set_from_json_visitor( value ), pair.second );
     }
 
-    catch ( boost::bad_lexical_cast err )
+    catch ( JsonTree::Exception err )
     {
-        CI_LOG_W( "Could not set param " << pair.first << " with value of " << value );
+        CI_LOG_W( "Could not set param " << pair.first << " with value value of " << value << ". " << err.what() );
     }
 }
 

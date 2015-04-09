@@ -68,6 +68,71 @@ Object.defineProperties( UIEvent.prototype, {
 } );
 
 ///////////////////////////////////////////////////////////////////////////////
+// DataConverter
+function DataConversionException( from, to ) {
+  this.message = "Cannot convert from " + from + " to " + to;
+}
+
+function DataConverter( raw, type ) {
+  this.raw = raw;
+  // type must be one of the conversion functions below
+  this.type = type;
+}
+
+Object.defineProperties( DataConverter.prototype, {
+  "is": { value: function() {
+    return Array.prototype.slice.call( arguments ).indexOf( this.type ) !== -1;
+  } },
+
+  // Server types, from HTML input types
+
+  "float": { get: function() {
+    if ( !this.is( "range", "number", "text" ) ) throw new DataConversionException( this.type, "float" );
+    return parseFloat( this.raw );
+  } },
+
+  "int": { get: function() {
+    if ( !this.is( "range", "number", "text" ) ) throw new DataConversionException( this.type, "int" );
+    return parseInt( this.raw, 10 );
+  } },
+
+  "vec3": { get: function() {
+    if ( !this.is( "color" ) ) throw new DataConversionException( this.type, "vec3" );
+
+    var bigint = parseInt( this.raw.replace( /[^0-9A-F]/gi, '' ), 16 );
+    return [
+      ( (bigint >> 16) & 255 ) / 255,
+      ( (bigint >> 8) & 255 ) / 255,
+      ( bigint & 255 ) / 255
+    ];
+  } },
+
+  // HTML input types, from Server types
+
+  "text": { get: function() {
+    if ( !this.is( "float", "int" ) ) throw new DataConversionException( this.type, "text" );
+    return this.raw;
+  } },
+
+  "number": { get: function() {
+    if ( !this.is( "float", "int" ) ) throw new DataConversionException( this.type, "number" );
+    return this.raw;
+  } },
+
+  "range": { get: function() {
+    if ( !this.is( "float", "int" ) ) throw new DataConversionException( this.type, "range" );
+    return this.raw;
+  } },
+
+  "color": { get: function() {
+    if ( !this.is( "vec3" ) ) throw new DataConversionException( this.type, "color" );
+
+    var rgb = this.raw.map( function( f ) { return Math.floor( f * 255 ); } );
+    return "#" + ((1 << 24) + (rgb[0] << 16) + (rgb[1] << 8) + rgb[2]).toString(16).slice(1);
+  } }
+} );
+
+///////////////////////////////////////////////////////////////////////////////
 // Client
 function Client( el ) {
   this.el = el;
@@ -199,13 +264,19 @@ Object.defineProperties( Client.prototype, {
   "getValueForElement": { value: function( el ) {
     var value = undefined;
 
-    if ( el.tagName === "INPUT" ) value = el.value;
+    if ( el.tagName === "INPUT" ) {
+      if ( el.dataset.serverType ) {
+        value = (new DataConverter( el.value, el.type ))[ el.dataset.serverType ];
+      } else {
+        value = el.value;
+      }
 
-    else if ( el.tagName === "FIELDSET" ) {
+
+    } else if ( el.tagName === "FIELDSET" ) {
       var inputs = el.querySelectorAll( "input" );
       value = [];
       for ( var i = 0; i < inputs.length; ++i ) {
-        value[ i ] = inputs[ i ].value;
+        value[ i ] = this.getValueForElement( inputs[ i ] );
       }
     }
 
@@ -214,11 +285,17 @@ Object.defineProperties( Client.prototype, {
 
   "setValueForElement": { value: function( el, value ) {
     if ( el.tagName === "INPUT" ) {
-      el.value = value;
-      var event = new Event( 'change', { 'view': window, 'bubbles': true, 'cancelable': true } );
+      if ( el.dataset.serverType ) {
+        el.value = (new DataConverter( value, el.dataset.serverType ))[ el.type ];
+      } else {
+        el.value = value;
+      }
+
+      // Trigger a custom event so that the user can distinguish between user
+      // input and this.
+      var event = new Event( 'webuui-set', { 'view': window, 'bubbles': true, 'cancelable': true } );
       el.dispatchEvent( event );
-      var event = new Event( 'input', { 'view': window, 'bubbles': true, 'cancelable': true } );
-      el.dispatchEvent( event );
+
 
     } else if ( el.tagName === "FIELDSET" ) {
       var inputs = el.querySelectorAll( "input" );
