@@ -75,11 +75,19 @@ void Server::onRead( string msg )
         string command = n.getKey();
         if ( command == "set" )
         {
+            CI_LOG_V( "WebUI received set: " << parsed );
             dispatch( Event( Event::Type::SET, parsed.getChild( "set" ) ) );
+        }
+
+        else if ( command == "select" )
+        {
+            CI_LOG_V( "WebUI received select: " << parsed );
+            dispatch( Event( Event::Type::SELECT, parsed.getChild( "select" ) ) );
         }
 
         else if ( command == "get" )
         {
+            CI_LOG_V( "WebUI received get: " << parsed );
             dispatch( Event( Event::Type::GET, parsed.getChild( "get" ) ) );
         }
     }
@@ -117,36 +125,27 @@ void Server::set( const string &name, const T &value )
 
 void Server::set( const string &name, const vec2 &value )
 {
-    stringstream ss;
-    JsonTree valueJSON = JsonTree::makeArray( name );
-    valueJSON.addChild( JsonTree( "", value.x ) );
-    valueJSON.addChild( JsonTree( "", value.y ) );
-    JsonTree json = makeSetJSON( valueJSON );
-    ss << json;
-    write( ss.str() );
+    set( name, vector< float >{ value.x, value.y } );
 }
 
 void Server::set( const string &name, const vec3 &value )
 {
-    stringstream ss;
-    JsonTree valueJSON = JsonTree::makeArray( name );
-    valueJSON.addChild( JsonTree( "", value.x ) );
-    valueJSON.addChild( JsonTree( "", value.y ) );
-    valueJSON.addChild( JsonTree( "", value.z ) );
-    JsonTree json = makeSetJSON( valueJSON );
-    ss << json;
-    write( ss.str() );
+    set( name, vector< float >{ value.x, value.y, value.z } );
 }
 
 void Server::set( const std::string &name, const ci::Colorf &value )
 {
+    set( name, vector< float >{ value.r, value.g, value.b } );
+}
+
+template< typename T >
+void Server::set( const std::string &name, const vector< T > &value )
+{
+    JsonTree json = JsonTree::makeArray( name );
+    for ( const auto &v : value ) json.addChild( JsonTree( "", v ) );
+
     stringstream ss;
-    JsonTree valueJSON = JsonTree::makeArray( name );
-    valueJSON.addChild( JsonTree( "", value.r ) );
-    valueJSON.addChild( JsonTree( "", value.g ) );
-    valueJSON.addChild( JsonTree( "", value.b ) );
-    JsonTree json = makeSetJSON( valueJSON );
-    ss << json;
+    ss << makeSetJSON( json );
     write( ss.str() );
 }
 
@@ -161,6 +160,7 @@ void Server::dispatch( const Event &event )
 WebUI::WebUI()
 {
     mServer.getEventSignal( Event::Type::SET ).connect( ::std::bind( &WebUI::onSet, this, ::std::placeholders::_1 ) );
+    mServer.getEventSignal( Event::Type::SELECT ).connect( ::std::bind( &WebUI::onSelect, this, ::std::placeholders::_1 ) );
 
     mServer.getEventSignal( Event::Type::GET ).connect( ::std::bind( &WebUI::onGet, this, ::std::placeholders::_1 ) );
 }
@@ -187,6 +187,26 @@ WebUI::bound_params_container::iterator WebUI::findParam( const string &name )
     return it;
 }
 
+vec2 jsonToVec2( const JsonTree &json )
+{
+    return vec2(json.getChild( 0 ).getValue< float >(),
+                json.getChild( 1 ).getValue< float >());
+}
+
+vec3 jsonToVec3( const JsonTree &json )
+{
+    return vec3(json.getChild( 0 ).getValue< float >(),
+                json.getChild( 1 ).getValue< float >(),
+                json.getChild( 2 ).getValue< float >());
+}
+
+Colorf jsonToColorf( const JsonTree &json )
+{
+    return Colorf(json.getChild( 0 ).getValue< float >(),
+                  json.getChild( 1 ).getValue< float >(),
+                  json.getChild( 2 ).getValue< float >());
+}
+
 struct set_from_json_visitor : boost::static_visitor<>
 {
     set_from_json_visitor( const JsonTree &j ) : json( j ) {};
@@ -201,25 +221,58 @@ struct set_from_json_visitor : boost::static_visitor<>
 
     void operator()( BoundParam< vec2 >* const &param_ptr ) const
     {
-        vec2 v( json.getChild( 0 ).getValue< float >(),
-                json.getChild( 1 ).getValue< float >() );
-        param_ptr->set( v, false );
+        param_ptr->set( jsonToVec2( json ), false );
     }
 
     void operator()( BoundParam< vec3 >* const &param_ptr ) const
     {
-        vec3 v( json.getChild( 0 ).getValue< float >(),
-                json.getChild( 1 ).getValue< float >(),
-                json.getChild( 2 ).getValue< float >() );
-        param_ptr->set( v, false );
+        param_ptr->set( jsonToVec3( json ), false );
     }
 
     void operator()( BoundParam< Colorf >* const &param_ptr ) const
     {
-        Colorf v( json.getChild( 0 ).getValue< float >(),
-                  json.getChild( 1 ).getValue< float >(),
-                  json.getChild( 2 ).getValue< float >() );
-        param_ptr->set( v, false );
+        param_ptr->set( jsonToColorf( json ), false );
+    }
+
+    void operator()( BoundParam< vector< string > >* const &param_ptr ) const
+    {
+        for ( const auto &c : json.getChildren() )
+        {
+            param_ptr->push_back( c.getValue< string >() );
+        }
+    }
+};
+
+struct select_from_json_visitor : boost::static_visitor<>
+{
+    select_from_json_visitor( const JsonTree &j ) : json( j ) {};
+    JsonTree json;
+
+    template< typename T >
+    void operator()( T const &param_ptr ) const
+    {
+        auto v = (*param_ptr)();
+        param_ptr->select( json.getValue< decltype( v ) >() );
+    }
+
+    void operator()( BoundParam< vec2 >* const &param_ptr ) const
+    {
+        param_ptr->select( jsonToVec2( json ) );
+    }
+
+    void operator()( BoundParam< vec3 >* const &param_ptr ) const
+    {
+        param_ptr->select( jsonToVec3( json ) );
+    }
+
+    void operator()( BoundParam< Colorf >* const &param_ptr ) const
+    {
+        param_ptr->select( jsonToColorf( json ) );
+    }
+
+    void operator()( BoundParam< vector< string > >* const &param_ptr ) const
+    {
+        param_ptr->select( json.getValue< string >() );
     }
 };
 
@@ -236,26 +289,6 @@ struct server_set_visitor : boost::static_visitor<>
     }
 };
 
-void WebUI::setClients( const bound_params_container::value_type &pair )
-{
-    server_set_visitor visitor( mServer, pair.first );
-    boost::apply_visitor( visitor, pair.second );
-}
-
-void WebUI::setSelf( const bound_params_container::value_type &pair, const JsonTree &value )
-{
-    try
-    {
-        boost::apply_visitor( set_from_json_visitor( value ), pair.second );
-    }
-
-    catch ( JsonTree::Exception err )
-    {
-        CI_LOG_W( "Could not set param " << pair.first << " with value value of " << value << ". " << err.what() );
-    }
-}
-
-
 void WebUI::onSet( Event event )
 {
     for ( const auto &n : event.getData() )
@@ -264,11 +297,37 @@ void WebUI::onSet( Event event )
         auto it = findParam( name );
         if ( it == mParams.end() ) continue;
 
-        setSelf( *it, n );
+        try
+        {
+            boost::apply_visitor( set_from_json_visitor( n ), it->second );
+        }
+
+        catch ( JsonTree::Exception err )
+        {
+            CI_LOG_W( "Could not set param " << it->first << " with value value of " << n << ". " << err.what() );
+        }
     }
 }
 
+void WebUI::onSelect( Event event )
+{
+    for ( const auto &n : event.getData() )
+    {
+        string name = n.getKey();
+        auto it = findParam( name );
+        if ( it == mParams.end() ) continue;
 
+        try
+        {
+            boost::apply_visitor( select_from_json_visitor( n ), it->second );
+        }
+
+        catch ( JsonTree::Exception err )
+        {
+            CI_LOG_W( "Could not select param " << it->first << " with value value of " << n << ". " << err.what() );
+        }
+    }
+}
 
 void WebUI::onGet( Event event )
 {
@@ -276,7 +335,8 @@ void WebUI::onGet( Event event )
     auto it = findParam( name );
     if ( it == mParams.end() ) return;
 
-    setClients( *it );
+    server_set_visitor visitor( mServer, it->first );
+    boost::apply_visitor( visitor, it->second );
 }
 
 void WebUI::onParamChange( const string &name )
@@ -284,5 +344,6 @@ void WebUI::onParamChange( const string &name )
     auto it = findParam( name );
     if ( it == mParams.end() ) return;
 
-    setClients( *it );
+    server_set_visitor visitor( mServer, it->first );
+    boost::apply_visitor( visitor, it->second );
 }

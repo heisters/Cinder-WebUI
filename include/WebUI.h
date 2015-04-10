@@ -13,7 +13,7 @@ namespace webui {
 class Event
 {
 public:
-    enum class Type { UNKNOWN, GET, SET };
+    enum class Type { UNKNOWN, GET, SET, SELECT };
     Event();
     Event( const Type &type, const ci::JsonTree &data );
 
@@ -43,6 +43,8 @@ public:
     void                        set( const std::string &name, const glm::vec2 &value );
     void                        set( const std::string &name, const glm::vec3 &value );
     void                        set( const std::string &name, const ci::Colorf &value );
+    template< typename T >
+    void                        set( const std::string &name, const std::vector< T > &value );
 
 private:
     void						onConnect();
@@ -58,18 +60,30 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 // BoundParam
+
+template< typename T > struct contained_type { typedef T value; };
+template< typename U > struct contained_type< std::vector< U > > { typedef U value; };
+
 template< typename T >
 class BoundParam
 {
 public:
     typedef T value;
-    typedef boost::signals2::signal< void ( T ) > signal;
+    typedef typename contained_type< T >::value contained_value;
+    typedef boost::signals2::signal< void ( value ) > signal;
+    typedef boost::signals2::signal< void ( contained_value ) > signal_select;
 
     BoundParam() {};
     BoundParam( const T &v ) : mValue( v ) {};
 
+    // no "T&" methods are provided, so that you can't accidentally modify the
+    // value without notifying of change
+
     T                           get() const { return mValue; }
     T                           set( const T & v, bool notify=true ) { mValue = v; if(notify) notifyChange(); return get(); }
+    template< typename U = T >
+    void                        push_back( const typename U::value_type &v, bool notify=true ) { mValue.push_back( v ); if (notify) notifyChange(); }
+    
     operator                    T () const { return get(); }
     T operator                  () () const { return get(); }
     T operator                  = ( const T & v ) { return set( v ); }
@@ -79,11 +93,15 @@ public:
     T operator                  -- () { mValue--; notifyChange(); return get(); }
 
     signal &                    getChangeSignal() { return mChangeSignal; }
+    signal_select &             getSelectSignal() { return mSelectSignal; }
+
+    void                        select( const contained_value &v ) { getSelectSignal()( v ); }
 private:
     void                        notifyChange() { getChangeSignal()( get() ); }
 
     T                           mValue;
     signal                      mChangeSignal;
+    signal_select               mSelectSignal;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -96,7 +114,7 @@ public:
     void                            update();
     void                            listen( uint16_t port );
 
-    typedef boost::variant< BoundParam< int >*, BoundParam< float >*, BoundParam< glm::vec2 >*, BoundParam< glm::vec3 >*, BoundParam< std::string >*, BoundParam< double >*, BoundParam< ci::Colorf >* > bound_param_ptr;
+    typedef boost::variant< BoundParam< int >*, BoundParam< float >*, BoundParam< glm::vec2 >*, BoundParam< glm::vec3 >*, BoundParam< std::string >*, BoundParam< double >*, BoundParam< ci::Colorf >*, BoundParam< std::vector< std::string > >* > bound_param_ptr;
     typedef std::map< std::string, bound_param_ptr > bound_params_container;
 
     template< typename T >
@@ -111,9 +129,8 @@ private:
     bound_params_container::iterator findParam( const std::string &name );
     void                            onSet( Event event );
     void                            onGet( Event event );
+    void                            onSelect( Event event );
     void                            onParamChange( const std::string &name );
-    void                            setClients( const bound_params_container::value_type &pair );
-    void                            setSelf( const bound_params_container::value_type &pair, const ci::JsonTree &value );
 
     bound_params_container          mParams;
 
