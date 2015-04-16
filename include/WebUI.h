@@ -72,6 +72,7 @@ public:
     typedef typename contained_type< T >::value contained_value;
     typedef boost::signals2::signal< void ( value ) > signal;
     typedef boost::signals2::signal< void ( contained_value ) > signal_select;
+    typedef boost::signals2::signal< void ( ci::JsonTree ) > signal_json;
 
     BoundParam() {};
     BoundParam( const T &v ) : mValue( v ) {};
@@ -94,7 +95,9 @@ public:
 
     signal &                    getChangeSignal() { return mChangeSignal; }
     signal_select &             getSelectSignal() { return mSelectSignal; }
+    signal_json &               getSelectJSONSignal() { return mSelectJSONSignal; }
 
+    void                        select( const ci::JsonTree &json ) { getSelectJSONSignal()( json ); }
     void                        select( const contained_value &v ) { getSelectSignal()( v ); }
 private:
     void                        notifyChange() { getChangeSignal()( get() ); }
@@ -102,6 +105,7 @@ private:
     T                           mValue;
     signal                      mChangeSignal;
     signal_select               mSelectSignal;
+    signal_json                 mSelectJSONSignal;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

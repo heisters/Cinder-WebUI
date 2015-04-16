@@ -252,26 +252,31 @@ struct select_from_json_visitor : boost::static_visitor<>
     void operator()( T const &param_ptr ) const
     {
         auto v = (*param_ptr)();
+        param_ptr->select( json );
         param_ptr->select( json.getValue< decltype( v ) >() );
     }
 
     void operator()( BoundParam< vec2 >* const &param_ptr ) const
     {
+        param_ptr->select( json );
         param_ptr->select( jsonToVec2( json ) );
     }
 
     void operator()( BoundParam< vec3 >* const &param_ptr ) const
     {
+        param_ptr->select( json );
         param_ptr->select( jsonToVec3( json ) );
     }
 
     void operator()( BoundParam< Colorf >* const &param_ptr ) const
     {
+        param_ptr->select( json );
         param_ptr->select( jsonToColorf( json ) );
     }
 
     void operator()( BoundParam< vector< string > >* const &param_ptr ) const
     {
+        param_ptr->select( json );
         param_ptr->select( json.getValue< string >() );
     }
 };
