@@ -118,7 +118,7 @@ public:
     void                            update();
     void                            listen( uint16_t port );
 
-    typedef boost::variant< BoundParam< int >*, BoundParam< float >*, BoundParam< glm::vec2 >*, BoundParam< glm::vec3 >*, BoundParam< std::string >*, BoundParam< double >*, BoundParam< ci::Colorf >*, BoundParam< std::vector< std::string > >* > bound_param_ptr;
+    typedef boost::variant< BoundParam< bool >*, BoundParam< int >*, BoundParam< float >*, BoundParam< glm::vec2 >*, BoundParam< glm::vec3 >*, BoundParam< std::string >*, BoundParam< double >*, BoundParam< ci::Colorf >*, BoundParam< std::vector< std::string > >* > bound_param_ptr;
     typedef std::map< std::string, bound_param_ptr > bound_params_container;
 
     template< typename T >
