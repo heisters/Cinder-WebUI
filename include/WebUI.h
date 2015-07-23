@@ -45,6 +45,8 @@ public:
     void                        set( const std::string &name, const ci::Colorf &value );
     template< typename T >
     void                        set( const std::string &name, const std::vector< T > &value );
+    template< typename T, typename U >
+    void                        set( const std::string &name, const std::map< T, U > &value );
 
 private:
     void						onConnect();
@@ -60,9 +62,11 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 // BoundParam
+enum source { local, remote };
 
 template< typename T > struct contained_type { typedef T value; };
 template< typename U > struct contained_type< std::vector< U > > { typedef U value; };
+template< typename V > struct contained_type< std::map< V, V > > { typedef std::pair< V, V > value; };
 
 template< typename T >
 class BoundParam
@@ -70,42 +74,48 @@ class BoundParam
 public:
     typedef T value;
     typedef typename contained_type< T >::value contained_value;
-    typedef boost::signals2::signal< void ( value ) > signal;
-    typedef boost::signals2::signal< void ( contained_value ) > signal_select;
-    typedef boost::signals2::signal< void ( ci::JsonTree ) > signal_json;
+    typedef boost::signals2::signal< void ( source, value ) > signal;
+    typedef boost::signals2::signal< void ( source, contained_value ) > signal_select;
+
 
     BoundParam() {};
     BoundParam( const T &v ) : mValue( v ) {};
 
     // no "T&" methods are provided, so that you can't accidentally modify the
-    // value without notifying of change
+    // value without notifying of set
 
     T                           get() const { return mValue; }
-    T                           set( const T & v, bool notify=true ) { mValue = v; if(notify) notifyChange(); return get(); }
+    contained_value             selected() const { return mSelected; }
+    T                           set( const T & v, const source s=local ) { mValue = v; notifySet( s ); return get(); }
     template< typename U = T >
-    void                        push_back( const typename U::value_type &v, bool notify=true ) { mValue.push_back( v ); if (notify) notifyChange(); }
+    void                        set( const typename U::value_type &v, const source s=local ) { mValue[v.first] = v.second; notifySet( s ); }
+    contained_value             select( const contained_value &v, const source s=local ) { mSelected = v; notifySelect( s ); return selected(); }
+
+    template< typename U = T >
+    void                        push_back( const typename U::value_type &v, const source s=local ) { mValue.push_back( v ); notifySet( s ); }
+    template< typename U = T >
+    void                        clear( const source s=local ) { mValue.clear(); notifySet( s ); }
+
     
     operator                    T () const { return get(); }
     T operator                  () () const { return get(); }
     T operator                  = ( const T & v ) { return set( v ); }
     T operator                  += ( const T & v ) { return set( mValue + v ); }
     T operator                  -= ( const T & v ) { return set( mValue - v ); }
-    T operator                  ++ () { mValue++; notifyChange(); return get(); }
-    T operator                  -- () { mValue--; notifyChange(); return get(); }
+    T operator                  ++ () { mValue++; notifySet( local ); return get(); }
+    T operator                  -- () { mValue--; notifySet( local ); return get(); }
 
-    signal &                    getChangeSignal() { return mChangeSignal; }
-    signal_select &             getSelectSignal() { return mSelectSignal; }
-    signal_json &               getSelectJSONSignal() { return mSelectJSONSignal; }
+    signal &                    getSetSignal() { return mLocalSetSignal; }
+    signal_select &             getSelectSignal() { return mLocalSelectSignal; }
 
-    void                        select( const ci::JsonTree &json ) { getSelectJSONSignal()( json ); }
-    void                        select( const contained_value &v ) { getSelectSignal()( v ); }
 private:
-    void                        notifyChange() { getChangeSignal()( get() ); }
+    void                        notifySet( const source s ) { getSetSignal()( s, get() ); }
+    void                        notifySelect( const source s ) { getSelectSignal()( s, selected() ); }
 
     T                           mValue;
-    signal                      mChangeSignal;
-    signal_select               mSelectSignal;
-    signal_json                 mSelectJSONSignal;
+    contained_value             mSelected;
+    signal                      mLocalSetSignal;
+    signal_select               mLocalSelectSignal;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -118,23 +128,23 @@ public:
     void                            update();
     void                            listen( uint16_t port );
 
-    typedef boost::variant< BoundParam< bool >*, BoundParam< int >*, BoundParam< float >*, BoundParam< glm::vec2 >*, BoundParam< glm::vec3 >*, BoundParam< std::string >*, BoundParam< double >*, BoundParam< ci::Colorf >*, BoundParam< std::vector< std::string > >* > bound_param_ptr;
+    typedef boost::variant< BoundParam< bool >*, BoundParam< int >*, BoundParam< float >*, BoundParam< glm::vec2 >*, BoundParam< glm::vec3 >*, BoundParam< std::string >*, BoundParam< double >*, BoundParam< ci::Colorf >*, BoundParam< std::vector< std::string > >*, BoundParam< std::map< std::string, std::string > >* > bound_param_ptr;
     typedef std::map< std::string, bound_param_ptr > bound_params_container;
 
     template< typename T >
     void                            bind( const std::string &name, T *param )
     {
-        param->getChangeSignal().connect( std::bind( &WebUI::onParamChange, this, name ) );
+        param->getSetSignal().connect( std::bind( &WebUI::onLocalSet, this, std::placeholders::_1, name ) );
         mParams.insert( make_pair( name, param ) );
     }
 
 private:
 
     bound_params_container::iterator findParam( const std::string &name );
-    void                            onSet( Event event );
-    void                            onGet( Event event );
-    void                            onSelect( Event event );
-    void                            onParamChange( const std::string &name );
+    void                            onRemoteSet( Event event );
+    void                            onRemoteGet( Event event );
+    void                            onRemoteSelect( Event event );
+    void                            onLocalSet( source s, const std::string &name );
 
     bound_params_container          mParams;
 

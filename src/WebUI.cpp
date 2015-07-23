@@ -149,6 +149,18 @@ void Server::set( const std::string &name, const vector< T > &value )
     write( ss.str() );
 }
 
+template< typename T, typename U >
+void Server::set( const std::string &name, const map< T, U > &value )
+{
+    JsonTree json = JsonTree::makeObject( name );
+    for ( const auto &v : value ) json.addChild( JsonTree( v.first, v.second ) );
+
+    stringstream ss;
+    ss << makeSetJSON( json );
+    write( ss.str() );
+}
+
+
 void Server::dispatch( const Event &event )
 {
     getEventSignal( event.getType() )( event );
@@ -159,10 +171,10 @@ void Server::dispatch( const Event &event )
 
 WebUI::WebUI()
 {
-    mServer.getEventSignal( Event::Type::SET ).connect( ::std::bind( &WebUI::onSet, this, ::std::placeholders::_1 ) );
-    mServer.getEventSignal( Event::Type::SELECT ).connect( ::std::bind( &WebUI::onSelect, this, ::std::placeholders::_1 ) );
+    mServer.getEventSignal( Event::Type::SET ).connect( ::std::bind( &WebUI::onRemoteSet, this, ::std::placeholders::_1 ) );
+    mServer.getEventSignal( Event::Type::SELECT ).connect( ::std::bind( &WebUI::onRemoteSelect, this, ::std::placeholders::_1 ) );
 
-    mServer.getEventSignal( Event::Type::GET ).connect( ::std::bind( &WebUI::onGet, this, ::std::placeholders::_1 ) );
+    mServer.getEventSignal( Event::Type::GET ).connect( ::std::bind( &WebUI::onRemoteGet, this, ::std::placeholders::_1 ) );
 }
 
 void WebUI::update()
@@ -216,29 +228,38 @@ struct set_from_json_visitor : boost::static_visitor<>
     void operator()( T const &param_ptr ) const
     {
         auto v = (*param_ptr)();
-        param_ptr->set( json.getValue< decltype( v ) >(), false );
+        param_ptr->set( json.getValue< decltype( v ) >(), remote );
     }
 
     void operator()( BoundParam< vec2 >* const &param_ptr ) const
     {
-        param_ptr->set( jsonToVec2( json ), false );
+        param_ptr->set( jsonToVec2( json ), remote );
     }
 
     void operator()( BoundParam< vec3 >* const &param_ptr ) const
     {
-        param_ptr->set( jsonToVec3( json ), false );
+        param_ptr->set( jsonToVec3( json ), remote );
     }
 
     void operator()( BoundParam< Colorf >* const &param_ptr ) const
     {
-        param_ptr->set( jsonToColorf( json ), false );
+        param_ptr->set( jsonToColorf( json ), remote );
     }
 
     void operator()( BoundParam< vector< string > >* const &param_ptr ) const
     {
+        param_ptr->clear();
         for ( const auto &c : json.getChildren() )
         {
-            param_ptr->push_back( c.getValue< string >() );
+            param_ptr->push_back( c.getValue< string >(), remote );
+        }
+    }
+
+    void operator()( BoundParam< map< string, string > >* const &param_ptr ) const
+    {
+        for ( const auto &c: json.getChildren() )
+        {
+            param_ptr->set( make_pair( c.getKey(), c.getValue< string >() ), remote );
         }
     }
 };
@@ -252,32 +273,32 @@ struct select_from_json_visitor : boost::static_visitor<>
     void operator()( T const &param_ptr ) const
     {
         auto v = (*param_ptr)();
-        param_ptr->select( json );
-        param_ptr->select( json.getValue< decltype( v ) >() );
+        param_ptr->select( json.getValue< decltype( v ) >(), remote );
     }
 
     void operator()( BoundParam< vec2 >* const &param_ptr ) const
     {
-        param_ptr->select( json );
-        param_ptr->select( jsonToVec2( json ) );
+        param_ptr->select( jsonToVec2( json ), remote );
     }
 
     void operator()( BoundParam< vec3 >* const &param_ptr ) const
     {
-        param_ptr->select( json );
-        param_ptr->select( jsonToVec3( json ) );
+        param_ptr->select( jsonToVec3( json ), remote );
     }
 
     void operator()( BoundParam< Colorf >* const &param_ptr ) const
     {
-        param_ptr->select( json );
-        param_ptr->select( jsonToColorf( json ) );
+        param_ptr->select( jsonToColorf( json ), remote );
     }
 
     void operator()( BoundParam< vector< string > >* const &param_ptr ) const
     {
-        param_ptr->select( json );
-        param_ptr->select( json.getValue< string >() );
+        param_ptr->select( json.getValue< string >(), remote );
+    }
+
+    void operator()( BoundParam< map< string, string > >* const &param_ptr ) const
+    {
+        param_ptr->select( make_pair( json.getKey(), json.getValue< string >() ), remote );
     }
 };
 
@@ -294,7 +315,7 @@ struct server_set_visitor : boost::static_visitor<>
     }
 };
 
-void WebUI::onSet( Event event )
+void WebUI::onRemoteSet( Event event )
 {
     for ( const auto &n : event.getData() )
     {
@@ -314,7 +335,7 @@ void WebUI::onSet( Event event )
     }
 }
 
-void WebUI::onSelect( Event event )
+void WebUI::onRemoteSelect( Event event )
 {
     for ( const auto &n : event.getData() )
     {
@@ -334,7 +355,7 @@ void WebUI::onSelect( Event event )
     }
 }
 
-void WebUI::onGet( Event event )
+void WebUI::onRemoteGet( Event event )
 {
     string name = event.getData().getValue();
     auto it = findParam( name );
@@ -344,8 +365,10 @@ void WebUI::onGet( Event event )
     boost::apply_visitor( visitor, it->second );
 }
 
-void WebUI::onParamChange( const string &name )
+void WebUI::onLocalSet( source s, const string &name )
 {
+    if ( s != local ) return;
+
     auto it = findParam( name );
     if ( it == mParams.end() ) return;
 
