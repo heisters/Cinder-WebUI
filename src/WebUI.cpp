@@ -25,73 +25,9 @@ mData( data )
 Server::Server() :
 WebSocketServer()
 {
-    addConnectCallback( &Server::onConnect, this );
-    addDisconnectCallback( &Server::onDisconnect, this );
-    addErrorCallback( &Server::onError, this );
-    addInterruptCallback( &Server::onInterrupt, this );
-    addPingCallback( &Server::onPing, this );
-    addReadCallback( &Server::onRead, this );
+
 }
 
-void Server::onConnect()
-{
-    CI_LOG_I( "Client connected" );
-}
-
-void Server::onDisconnect()
-{
-    CI_LOG_I( "Client disconnected" );
-}
-
-void Server::onInterrupt()
-{
-    CI_LOG_I( "interrupt" );
-}
-
-void Server::onError( string err )
-{
-    CI_LOG_W( "WebUI error: " << err );
-}
-
-void Server::onPing( string msg )
-{
-}
-
-void Server::onRead( string msg )
-{
-    JsonTree parsed;
-    try
-    {
-        parsed = JsonTree( msg );
-    } catch ( JsonTree::ExcJsonParserError err ) {
-        CI_LOG_W( "Could not parse JSON: " << msg << " " << err.what() );
-        return;
-    }
-
-
-
-    for ( const auto &n : parsed )
-    {
-        string command = n.getKey();
-        if ( command == "set" )
-        {
-            CI_LOG_V( "WebUI received set: " << parsed );
-            dispatch( Event( Event::Type::SET, parsed.getChild( "set" ) ) );
-        }
-
-        else if ( command == "select" )
-        {
-            CI_LOG_V( "WebUI received select: " << parsed );
-            dispatch( Event( Event::Type::SELECT, parsed.getChild( "select" ) ) );
-        }
-
-        else if ( command == "get" )
-        {
-            CI_LOG_V( "WebUI received get: " << parsed );
-            dispatch( Event( Event::Type::GET, parsed.getChild( "get" ) ) );
-        }
-    }
-}
 
 Server::event_signal & Server::getEventSignal( const Event::Type &type )
 {
@@ -171,6 +107,61 @@ void Server::dispatch( const Event &event )
 
 WebUI::WebUI()
 {
+	mServer.connectOpenEventHandler([&]()
+	{
+		CI_LOG_I("Client connected");
+	});
+	mServer.connectCloseEventHandler([&]()
+	{
+		CI_LOG_I("Client disconnected");
+	});
+	mServer.connectFailEventHandler([&](string err)
+	{
+		CI_LOG_W("WebUI error: " << err);
+	});
+	mServer.connectInterruptEventHandler([&]()
+	{
+		CI_LOG_I("interrupt");
+	});
+	mServer.connectPingEventHandler([&](string msg)
+	{
+		CI_LOG_I("ping");
+	});
+	mServer.connectMessageEventHandler([&](string msg)
+	{
+		JsonTree parsed;
+		try
+		{
+			parsed = JsonTree(msg);
+		}
+		catch (JsonTree::ExcJsonParserError err) {
+			CI_LOG_W("Could not parse JSON: " << msg << " " << err.what());
+			return;
+		}
+
+		for (const auto &n : parsed)
+		{
+			string command = n.getKey();
+			if (command == "set")
+			{
+				CI_LOG_V("WebUI received set: " << parsed);
+				mServer.dispatch(Event(Event::Type::SET, parsed.getChild("set")));
+			}
+
+			else if (command == "select")
+			{
+				CI_LOG_V("WebUI received select: " << parsed);
+				mServer.dispatch(Event(Event::Type::SELECT, parsed.getChild("select")));
+			}
+
+			else if (command == "get")
+			{
+				CI_LOG_V("WebUI received get: " << parsed);
+				mServer.dispatch(Event(Event::Type::GET, parsed.getChild("get")));
+			}
+		}
+	});
+
     mServer.getEventSignal( Event::Type::SET ).connect( ::std::bind( &WebUI::onRemoteSet, this, ::std::placeholders::_1 ) );
     mServer.getEventSignal( Event::Type::SELECT ).connect( ::std::bind( &WebUI::onRemoteSelect, this, ::std::placeholders::_1 ) );
 

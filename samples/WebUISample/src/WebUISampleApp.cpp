@@ -45,7 +45,7 @@ void WebUISampleApp::setup()
 {
     gl::enableAlphaBlending();
 
-    log::manager()->enableConsoleLogging();
+    // log::manager()->enableConsoleLogging();
 
     mUI.listen( 9002 );
 
