@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cinder/app/App.h"
+
 #include "WebSocketServer.h"
 #include "cinder/Json.h"
 #include "boost/variant.hpp"
@@ -47,6 +49,7 @@ public:
     void                        set( const std::string &name, const std::vector< T > &value );
     template< typename T, typename U >
     void                        set( const std::string &name, const std::map< T, U > &value );
+    void                        dispatch( const Event &event );
 
 private:
     void						onConnect();
@@ -57,7 +60,6 @@ private:
     void						onRead( std::string msg );
 
     event_signal_container      mEventSignals;
-    void                        dispatch( const Event &event );
 };
 
 ////////////////////////////////////////////////////////////////////////////////

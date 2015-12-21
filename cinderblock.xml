@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<cinder>
+<block
+	name="WebUI"
+	id="co.heisters.webui"
+	author="Ian Heisters"
+	license="MIT"
+	summary="WebUI block for Cinder"
+	url="https://github.com/heisters/Cinder-WebUI"
+	git="git://github.com/heisters/Cinder-WebUI.git"
+	>
+	<supports os="macosx" />
+	<supports os="msw" />
+	<requires>com.wk.websocketpp</requires>
+	<includePath>include</includePath>
+	<includePath>src</includePath>
+	<headerPattern>include/*.h</headerPattern>
+	<sourcePattern>src/*.cpp</sourcePattern>
+	<source>src/WebUI.cpp</source>
+</block>
+<template>templates/WebUI/template.xml</template>
+</cinder>
