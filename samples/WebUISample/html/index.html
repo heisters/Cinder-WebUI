@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="client.js" type="text/javascript"></script>
+    <link href="basic.css" rel="stylesheet" type="text/css">
+    <style>
+      .not-connected {
+        position: fixed;
+        left: 0; top: 0; bottom: 0; right: 0;
+        background-color: rgba( 240, 240, 240, 0.8 );
+        font-size: 60pt;
+        font-weight: 900;
+        text-align: center;
+        padding-top: 20pt;
+        color: red;
+      }
+      .connected .not-connected { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="grid grid-pad">
+      <div class="col-1-1">
+        <h1>WebUI Sample Client</h1>
+      </div>
+      <form id="controls" action="">
+        <div class="col-1-2">
+          <div class="content controls aligned aligned-40-40">
+            <label for="fps">FPS</label>
+            <input id="fps" type="text" readonly >
+
+            <label for="radius">Radius</label>
+            <input id="radius" type="range" min="0" max="1" step="0.01" />
+            <span class="output" data-show-value-for-id="radius"></span>
+
+            <label for="subdivisions">Subdivisions</label>
+            <input id="subdivisions" type="range" min="6" max="48" step="1" />
+            <span class="output" data-show-value-for-id="subdivisions"></span>
+
+            <label for="num-cubes">Number of Cubes</label>
+            <input id="num-cubes" type="number" min="1" max="10" />
+
+            <label for="text">Text</label>
+            <input id="text" type="text" />
+          </div>
+        </div>
+
+        <div class="col-1-2">
+          <div class="content controls">
+            <fieldset id="rotation">
+              <legend>Rotation</legend>
+
+              <label for="rotation-x">X
+                <!-- the class '.sub' is just used to filter these out when
+                     using a query selector to bind elements below -->
+                <input id="rotation-x" class="sub" type="range" min="-1" max="1" step="0.1" />
+              </label>
+
+              <label for="rotation-y">Y
+                <input id="rotation-y" class="sub" type="range" min="-1" max="1" step="0.1" />
+              </label>
+
+              <label for="rotation-z">Z
+                <input id="rotation-z" class="sub" type="range" min="-1" max="1" step="0.1" />
+              </label>
+            </fieldset>
+
+            <fieldset id="center">
+              <legend>Center</legend>
+
+              <label for="center-x">X
+                <input id="center-x" class="sub" type="range" min="-5" max="5" step="0.1" />
+              </label>
+
+              <label for="center-y">Y
+                <input id="center-y" class="sub" type="range" min="-5" max="5" step="0.1" />
+              </label>
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="col-1-2">
+          <div class="content">
+            <label for="color">Color</label>
+            <input id="color" type="color" data-server-type="vec3" >
+
+            <label for="yes-no" style="color:red;">Yes or No?</label>
+            <input id="yes-no" type="checkbox" >
+
+            <label for="letter">Choose a Letter
+              <select name="letter">
+              </select>
+            </label>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="not-connected">Not Connected</div>
+
+
+    <script type="text/javascript">
+      var form = document.getElementById( "controls" );
+      var client = new WebUIClient.Client( form );
+
+      // Bind inputs to data
+      var elements = form.querySelectorAll( "fieldset,input:not(.sub),select" );
+      for ( var i = 0; i < elements.length; ++i ) client.bind( elements[ i ] );
+
+      // Setup outputs. This is a simple example of using custom event
+      // listeners to modify the DOM.
+      //
+      // TODO: replace this with <output> elements
+      // http://html5doctor.com/the-output-element/
+      var outputs = form.querySelectorAll( ".output" );
+      for ( var i = 0; i < outputs.length; ++i ) {
+        (function( i ) {
+          var el = outputs[ i ];
+          var input = document.getElementById( el.dataset.showValueForId );
+          input.addEventListener( 'webui-set', function() { el.innerHTML = input.value; } );
+          input.addEventListener( 'input', function() { el.innerHTML = input.value; } );
+        })( i );
+      }
+
+      // Listen for client connection events to display the client's state.
+      var updateConnectedState = function() {
+        if ( client.isReady ) {
+          document.body.classList.add( "connected" );
+        } else {
+          document.body.classList.remove( "connected" );
+        }
+      };
+      client.events.bind( "connected", updateConnectedState );
+      client.events.bind( "closed", updateConnectedState );
+
+
+      // When the client connects, initialize all controls to their values in Cinder.
+      client.events.bind( "connected", client.getAll.bind( client ) );
+
+
+      // Finally, connect to Cinder.
+      client.connect( "ws://localhost:9002", { persistent: true } );
+    </script>
+  </body>
+</html>

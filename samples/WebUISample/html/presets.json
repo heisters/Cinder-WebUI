@@ -1,0 +1,14 @@
+{
+  "blurry motherfucker": {
+    "num-delays": "10",
+    "delay": "1",
+    "bloom-radius": "50"
+  },
+  "KRYSTAL KLEAR": {
+    "num-delays": "0",
+    "delay": "0",
+    "luminance-pow": "0",
+    "bloom-radius": "0",
+    "jitter": "0"
+  }
+}

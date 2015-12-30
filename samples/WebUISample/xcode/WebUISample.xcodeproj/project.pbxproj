@@ -19,6 +19,8 @@
 		3C1C7DE51AC9FED900F41619 /* CMakeLists.txt in Resources */ = {isa = PBXBuildFile; fileRef = 3C1C7D781AC9FED800F41619 /* CMakeLists.txt */; };
 		3C1C7DE61AC9FED900F41619 /* WebSocketServer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C1C7DE11AC9FED900F41619 /* WebSocketServer.cpp */; };
 		3C1C7DF01ACA18A600F41619 /* WebUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3C1C7DEF1ACA18A600F41619 /* WebUI.cpp */; };
+		3C2DFC5D1C348BC800E5DB9F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C2DFC5B1C348BC800E5DB9F /* IOKit.framework */; };
+		3C2DFC5E1C348BC800E5DB9F /* IOSurface.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3C2DFC5C1C348BC800E5DB9F /* IOSurface.framework */; };
 		5323E6B20EAFCA74003A9687 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5323E6B10EAFCA74003A9687 /* CoreVideo.framework */; };
 		5323E6B60EAFCA7E003A9687 /* QTKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5323E6B50EAFCA7E003A9687 /* QTKit.framework */; };
 		5D822F9D22024DECB746BB88 /* WebUISampleApp.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A2D1B6E0D0694F3F85AB82DD /* WebUISampleApp.cpp */; };
@@ -135,6 +137,8 @@
 		3C1C7DE21AC9FED900F41619 /* WebSocketServer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebSocketServer.h; sourceTree = "<group>"; };
 		3C1C7DEE1ACA189900F41619 /* WebUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WebUI.h; sourceTree = "<group>"; };
 		3C1C7DEF1ACA18A600F41619 /* WebUI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = WebUI.cpp; sourceTree = "<group>"; };
+		3C2DFC5B1C348BC800E5DB9F /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		3C2DFC5C1C348BC800E5DB9F /* IOSurface.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOSurface.framework; path = System/Library/Frameworks/IOSurface.framework; sourceTree = SDKROOT; };
 		5323E6B10EAFCA74003A9687 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = /System/Library/Frameworks/CoreVideo.framework; sourceTree = "<absolute>"; };
 		5323E6B50EAFCA7E003A9687 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = /System/Library/Frameworks/QTKit.framework; sourceTree = "<absolute>"; };
 		59B94F9592DF4598BB6FD613 /* WebUISample_Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = "\"\""; path = WebUISample_Prefix.pch; sourceTree = "<group>"; };
@@ -148,10 +152,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3C2DFC5E1C348BC800E5DB9F /* IOSurface.framework in Frameworks */,
 				006D720419952D00008149E2 /* AVFoundation.framework in Frameworks */,
 				006D720519952D00008149E2 /* CoreMedia.framework in Frameworks */,
 				8D11072F0486CEB800E47090 /* Cocoa.framework in Frameworks */,
 				0091D8F90E81B9330029341E /* OpenGL.framework in Frameworks */,
+				3C2DFC5D1C348BC800E5DB9F /* IOKit.framework in Frameworks */,
 				5323E6B20EAFCA74003A9687 /* CoreVideo.framework in Frameworks */,
 				5323E6B60EAFCA7E003A9687 /* QTKit.framework in Frameworks */,
 				00B784B30FF439BC000DE1D7 /* Accelerate.framework in Frameworks */,
@@ -184,6 +190,8 @@
 		1058C7A0FEA54F0111CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				3C2DFC5B1C348BC800E5DB9F /* IOKit.framework */,
+				3C2DFC5C1C348BC800E5DB9F /* IOSurface.framework */,
 				006D720219952D00008149E2 /* AVFoundation.framework */,
 				006D720319952D00008149E2 /* CoreMedia.framework */,
 				00B784AF0FF439BC000DE1D7 /* Accelerate.framework */,
@@ -640,6 +648,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BLOCKS_PATH = ../../../blocks;
+				CINDER_PATH = ../../../../..;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = YES;
@@ -654,7 +663,7 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
-					"\"$(CINDER_PATH)/boost\"",
+					"\"$(CINDER_PATH)/include\"",
 					"\"$(BLOCKS_PATH)/WebSocketPP/src\"",
 				);
 				INFOPLIST_FILE = Info.plist;
@@ -667,6 +676,7 @@
 				);
 				PRODUCT_NAME = WebUISample;
 				SYMROOT = ./build;
+				USER_HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/include\" ../include";
 				VALID_ARCHS = x86_64;
 				WRAPPER_EXTENSION = app;
 			};
@@ -676,6 +686,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BLOCKS_PATH = ../../../blocks;
+				CINDER_PATH = ../../../../..;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
@@ -691,7 +702,7 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				HEADER_SEARCH_PATHS = (
-					"\"$(CINDER_PATH)/boost\"",
+					"\"$(CINDER_PATH)/include\"",
 					"\"$(BLOCKS_PATH)/WebSocketPP/src\"",
 				);
 				INFOPLIST_FILE = Info.plist;
@@ -705,6 +716,7 @@
 				PRODUCT_NAME = WebUISample;
 				STRIP_INSTALLED_PRODUCT = YES;
 				SYMROOT = ./build;
+				USER_HEADER_SEARCH_PATHS = "\"$(CINDER_PATH)/include\" ../include";
 				VALID_ARCHS = x86_64;
 				WRAPPER_EXTENSION = app;
 			};

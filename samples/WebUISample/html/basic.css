@@ -53,16 +53,24 @@ fieldset {
   display: inline-block;
 }
 
-.controls.aligned label {
-  width: 30%;
-}
 .controls.aligned.right label {
   text-align: right;
 }
 
-.controls.aligned label + input {
+.controls.aligned-30-30 label {
+  width: 30%;
+}
+.controls.aligned-30-30 label + input {
   width: 30%;
   margin: 0 30% 0 4%;
+}
+
+.controls.aligned-40-40 label {
+  width: 40%;
+}
+.controls.aligned-40-40 label + input {
+  width: 40%;
+  margin: 0 0 0 4%;
 }
 
 

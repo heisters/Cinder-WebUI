@@ -17,11 +17,16 @@ public:
 private:
     ci::CameraPersp                     mCam;
     webui::WebUI                        mUI;
-    webui::BoundParam< float >          mRadius;
+	webui::BoundParam< float >          mRadius = 0.5f;
+	webui::BoundParam< float >          mFPS;
     webui::BoundParam< ci::vec2 >       mCenter;
     webui::BoundParam< ci::vec3 >       mRotation;
-    webui::BoundParam< int >            mNumCubes, mSubdivisions;
+	webui::BoundParam< int >            mNumCubes = 1;
+	webui::BoundParam< int >			mSubdivisions = 12;
     webui::BoundParam< std::string >    mText;
+	webui::BoundParam< bool >			mYesOrNo = false;
+	webui::BoundParam< ci::Colorf >		mColor;
+	webui::BoundParam< std::vector< std::string > > mLetters;
     ci::Font                            mFont;
 };
 
@@ -30,13 +35,12 @@ using namespace ci::app;
 using namespace std;
 
 WebUISampleApp::WebUISampleApp() :
-mRadius( 0.5f ),
 mCenter( vec2( 0.f ) ),
 mRotation( vec3( 0.1f ) ),
-mNumCubes( 1 ),
-mSubdivisions( 12 ),
 mText( "text" ),
-mFont( loadAsset( "Roboto-Black.ttf" ), 16 )
+mFont( loadAsset( "Roboto-Black.ttf" ), 16 ),
+mColor( Colorf( 1.f, 0.f, 0.f ) ),
+mLetters( vector< string >{"🐶","🐱","🐼"} )
 {
 }
 
@@ -44,16 +48,18 @@ void WebUISampleApp::setup()
 {
     gl::enableAlphaBlending();
 
-    log::manager()->enableConsoleLogging();
-
     mUI.listen( 9002 );
 
+	mUI.bind( "fps", &mFPS );
     mUI.bind( "radius", &mRadius );
     mUI.bind( "center", &mCenter );
     mUI.bind( "rotation", &mRotation );
     mUI.bind( "num-cubes", &mNumCubes );
     mUI.bind( "subdivisions", &mSubdivisions );
     mUI.bind( "text", &mText );
+	mUI.bind( "color", &mColor );
+	mUI.bind( "yes-no", &mYesOrNo );
+	mUI.bind( "letter", &mLetters );
 
     resize();
 }
@@ -79,29 +85,44 @@ void WebUISampleApp::keyDown( KeyEvent event )
 
 void WebUISampleApp::update()
 {
+	mFPS = getAverageFps();
     mUI.update();
-
 }
 
 void WebUISampleApp::draw()
 {
-	gl::clear( Color( 0, 0, 0 ) );
-    gl::ScopedMatrices scp_mtx1;
-    gl::setMatrices( mCam );
+	gl::clear();
 
-    for ( int i = 0; i < mNumCubes; ++i )
-    {
-        gl::ScopedModelMatrix scp_mtx2;
-        vec2 center = mCenter() + vec2( float(i) * mRadius * 2.f + ( mNumCubes - 1 ) * -mRadius, 0.f );
+	{
+		gl::ScopedMatrices scp_mtx1;
+		gl::ScopedColor scp_color( mColor() );
+		gl::setMatrices( mCam );
 
-        gl::translate( center );
-        gl::rotate( 1.f, mRotation() * float( M_PI ) * 2.f );
-        gl::drawSphere( vec3( 0.f ), mRadius, mSubdivisions );
-    }
+		gl::rotate( 1.f, mRotation() * float( M_PI ) * 2.f );
 
-    gl::setMatricesWindow( getWindowSize() );
-    gl::drawString( mText, vec2( 5, getWindowHeight() - (mFont.getSize()+5) ), ColorAf( 1.f, 1.f, 1.f, 1.f ), mFont );
+		for ( int i = 0; i < mNumCubes; ++i )
+		{
+			gl::ScopedModelMatrix scp_mtx2;
+			vec2 center = mCenter() + vec2( float(i) * mRadius * 2.f + ( mNumCubes - 1 ) * -mRadius, 0.f );
+
+			gl::translate( center );
+			gl::drawSphere( vec3( 0.f ), mRadius, mSubdivisions );
+		}
+	}
+
+	{
+		gl::ScopedMatrices scp_mtx1;
+		gl::setMatricesWindow( getWindowSize() );
+		gl::drawString( mText, vec2( 5, getWindowHeight() - (mFont.getSize()+5) ), ColorAf::white(), mFont );
+
+		gl::drawString( mYesOrNo ? "🙂" : "🙃", vec2( 5, 5 ), ColorAf::white(), mFont );
+
+		auto selected = mLetters.selected();
+		stringstream ss;
+		ss << "Selected letter: " << selected;
+		gl::drawString( ss.str(), vec2( 5, mFont.getSize() + 5 * 2 ), ColorAf::white(), mFont );
+	}
 }
 
 
-CINDER_APP( WebUISampleApp, RendererGl )
+CINDER_APP( WebUISampleApp, RendererGl( RendererGl::Options().msaa( 16 ) ) )
