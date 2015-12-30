@@ -25,12 +25,12 @@ mData( data )
 Server::Server() :
 WebSocketServer()
 {
-    addConnectCallback( &Server::onConnect, this );
-    addDisconnectCallback( &Server::onDisconnect, this );
-    addErrorCallback( &Server::onError, this );
-    addInterruptCallback( &Server::onInterrupt, this );
-    addPingCallback( &Server::onPing, this );
-    addReadCallback( &Server::onRead, this );
+	connectOpenEventHandler( bind( &Server::onConnect, this ) );
+	connectCloseEventHandler( bind( &Server::onDisconnect, this ) );
+	connectFailEventHandler( bind( &Server::onError, this, placeholders::_1 ) );
+	connectInterruptEventHandler( bind( &Server::onInterrupt, this ) );
+	connectPingEventHandler( bind( &Server::onPing, this, placeholders::_1 ) );
+	connectMessageEventHandler( bind( &Server::onRead, this, placeholders::_1 ) );
 }
 
 void Server::onConnect()
