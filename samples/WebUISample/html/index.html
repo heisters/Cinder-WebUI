@@ -1,8 +1,13 @@
 <!doctype html>
 <html>
   <head>
+    <!-- the JS client library -->
     <script src="client.js" type="text/javascript"></script>
+
+    <!-- a simple skin -->
     <link href="basic.css" rel="stylesheet" type="text/css">
+
+    <!-- some custom styles -->
     <style>
       .not-connected {
         position: fixed;
@@ -23,22 +28,30 @@
         <h1>WebUI Sample Client</h1>
       </div>
       <form id="controls" action="">
+        <!-- basic.css includes a simple grid system -->
         <div class="col-1-2">
+          <!-- .aligned.aligned-40-40 makes labels and inputs align vertically within the column -->
           <div class="content controls aligned aligned-40-40">
+            <!-- a readonly input -->
             <label for="fps">FPS</label>
             <input id="fps" type="text" readonly >
 
+            <!-- a float -->
             <label for="radius">Radius</label>
             <input id="radius" type="range" min="0" max="1" step="0.01" />
-            <span class="output" data-show-value-for-id="radius"></span>
+            <!-- ... with an output to see its value -->
+            <output for="radius"></output>
 
+            <!-- an int -->
             <label for="subdivisions">Subdivisions</label>
             <input id="subdivisions" type="range" min="6" max="48" step="1" />
-            <span class="output" data-show-value-for-id="subdivisions"></span>
+            <output for="subdivisions"></output>
 
+            <!-- another int -->
             <label for="num-cubes">Number of Cubes</label>
             <input id="num-cubes" type="number" min="1" max="10" />
 
+            <!-- some text -->
             <label for="text">Text</label>
             <input id="text" type="text" />
           </div>
@@ -46,6 +59,8 @@
 
         <div class="col-1-2">
           <div class="content controls">
+            <!-- fieldsets can group inputs together so that each controls a
+                 single element of a complex data type like a vec3 -->
             <fieldset id="rotation">
               <legend>Rotation</legend>
 
@@ -64,6 +79,7 @@
               </label>
             </fieldset>
 
+            <!-- ... or a vec2 -->
             <fieldset id="center">
               <legend>Center</legend>
 
@@ -80,16 +96,23 @@
 
         <div class="col-1-2">
           <div class="content">
+            <!-- it works with color inputs as well -->
             <label for="color">Color</label>
             <input id="color" type="color" data-server-type="vec3" >
+            <br />
 
+            <!-- and checkboxes -->
             <label for="yes-no" style="color:red;">Yes or No?</label>
             <input id="yes-no" type="checkbox" >
+            <br />
 
+            <!-- this select will be automatically populated with options from
+                 Cinder -->
             <label for="letter">Choose a Letter
               <select name="letter">
               </select>
             </label>
+            <br />
           </div>
         </div>
 
@@ -101,24 +124,24 @@
 
     <script type="text/javascript">
       var form = document.getElementById( "controls" );
+      // Initialize the client with an event delegate element
       var client = new WebUIClient.Client( form );
 
-      // Bind inputs to data
+      // Bind inputs to data, excluding the inputs that are part of a fieldset
       var elements = form.querySelectorAll( "fieldset,input:not(.sub),select" );
       for ( var i = 0; i < elements.length; ++i ) client.bind( elements[ i ] );
 
       // Setup outputs. This is a simple example of using custom event
       // listeners to modify the DOM.
-      //
-      // TODO: replace this with <output> elements
-      // http://html5doctor.com/the-output-element/
-      var outputs = form.querySelectorAll( ".output" );
+      var outputs = form.querySelectorAll( "output" );
       for ( var i = 0; i < outputs.length; ++i ) {
         (function( i ) {
           var el = outputs[ i ];
-          var input = document.getElementById( el.dataset.showValueForId );
-          input.addEventListener( 'webui-set', function() { el.innerHTML = input.value; } );
-          input.addEventListener( 'input', function() { el.innerHTML = input.value; } );
+          var input = document.getElementById( el.getAttribute("for") );
+          // listen for the server setting the value
+          input.addEventListener( 'webui-set', function() { el.value = input.value; } );
+          // and for the user setting it through the UI
+          input.addEventListener( 'input', function() { el.value = input.value; } );
         })( i );
       }
 
